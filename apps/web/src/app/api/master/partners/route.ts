@@ -4,7 +4,7 @@ import { requireMember } from "@/server/auth";
 import { audit, tx } from "@/server/db";
 
 export const POST = handle(async (req: Request) => {
-  const m = await requireMember(["admin"]);
+  const m = await requireMember(["admin"], req);
   const body = partnerSchema.parse(await req.json());
 
   return tx(async (s) => {

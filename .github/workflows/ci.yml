@@ -25,15 +25,18 @@ jobs:
       - run: npm run test
 
   db-integration:
-    if: ${{ false }} # bật ở lô 0.2
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - run: |
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_ANON_KEY=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\nSUPABASE_DB_URL=%s\nSUPABASE_ACCESS_TOKEN=%s\nSUPABASE_PROJECT_REF=%s\n' \
+            "$NEXT_PUBLIC_SUPABASE_URL" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_DB_URL" "$SUPABASE_ACCESS_TOKEN" "$SUPABASE_PROJECT_REF" > .env.local
       - run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
-      - run: npx supabase db push
+      - run: npx supabase db push --yes
       - run: npm run test:db
 
   e2e:
