@@ -17,10 +17,15 @@ async function waitReady(timeoutMs = 60000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(`${BASE_URL}/login`);
+      // Mỗi lần gọi có timeout riêng (AbortController) — 1 request treo không được kéo
+      // theo cả vòng lặp treo vô thời hạn.
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(`${BASE_URL}/login`, { signal: controller.signal });
+      clearTimeout(t);
       if (res.status) return;
     } catch {
-      // web chưa sẵn sàng, thử lại
+      // web chưa sẵn sàng hoặc request vượt timeout, thử lại
     }
     await new Promise((r) => setTimeout(r, 500));
   }
