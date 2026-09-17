@@ -1,0 +1,25 @@
+{
+  "name": "erp-app",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "env:sync": "node -e \"require('fs').copyFileSync('.env.local','apps/web/.env.local')\"",
+    "dev": "npm run env:sync && npm run dev -w apps/web",
+    "build": "npm run env:sync && npm run build -w apps/web",
+    "start": "npm run start -w apps/web",
+    "lint": "npm run lint -w apps/web",
+    "typecheck": "tsc -p packages/core --noEmit && npm run typecheck -w apps/web",
+    "test": "vitest run",
+    "test:db": "tsx tests/db/run.ts",
+    "e2e": "npm run env:sync && playwright test -c tests/e2e/playwright.config.ts",
+    "check": "npm run lint && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^16.4.7",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5",
+    "vitest": "^2.1.8"
+  }
+}
