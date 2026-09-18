@@ -73,6 +73,49 @@ export async function createTestTenant(opts: { role?: Role } = {}): Promise<Test
   };
 }
 
+export type BareUser = {
+  userId: string;
+  email: string;
+  signIn: () => Promise<{ client: ReturnType<typeof createClient>; accessToken: string }>;
+  cleanup: () => Promise<void>;
+};
+
+/** Tạo user CHƯA có membership/tenant nào — dùng cho test đăng ký doanh nghiệp (lô 1.1). */
+export async function createBareUser(): Promise<BareUser> {
+  const rand = Math.random().toString(36).slice(2, 10);
+  const email = `t_test_${rand}@test.local`;
+
+  const { data: userData, error: userErr } = await admin.auth.admin.createUser({
+    email,
+    password: PASSWORD,
+    email_confirm: true,
+  });
+  if (userErr || !userData.user) throw userErr ?? new Error("createUser thất bại");
+  const userId = userData.user.id;
+
+  return {
+    userId,
+    email,
+    async signIn() {
+      const client = createClient(SUPABASE_URL, ANON_KEY);
+      const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+      if (error || !data.session) throw error ?? new Error("signIn thất bại");
+      return { client, accessToken: data.session.access_token };
+    },
+    async cleanup() {
+      // Test có thể đã tự đăng ký tạo tenant — xoá cả tenant đó (van purge) nếu có, rồi xoá user.
+      const [m] = await sql`select tenant_id from memberships where user_id = ${userId}`;
+      if (m) {
+        await sql.begin(async (t) => {
+          await t`set local app.purge = 'on'`;
+          await t`delete from tenants where id = ${m.tenant_id}`;
+        });
+      }
+      await admin.auth.admin.deleteUser(userId);
+    },
+  };
+}
+
 export async function createPartner(tenantId: string, code: string) {
   const [row] = await sql`
     insert into partners (tenant_id, code, name, kind)

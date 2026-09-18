@@ -23,7 +23,7 @@ export default async function AppHome() {
 
   return (
     <main className="mx-auto mt-16 w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-bold" id="tenant-name">
+      <h1 className="text-xl font-bold" id="tenant-title">
         {tenant?.name ?? "ERP"}
       </h1>
       <p className="mt-2 text-sm">

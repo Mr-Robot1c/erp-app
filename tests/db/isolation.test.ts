@@ -24,6 +24,9 @@ import {
  * Nâng cấp lô 0.3: thêm các bảng khung chứng từ (documents, document_lines, doc_status_history
  * có SELECT policy; doc_sequences, idempotency_keys KHÔNG có policy nào — client không đọc được
  * kể cả dữ liệu của chính mình, xử lý riêng).
+ * Lô 1.1: `industry_templates` KHÔNG có cột tenant_id (bảng dùng chung mọi tenant, policy select
+ * using(true) cố ý public để trang đăng ký đọc được trước khi có membership) — không bị auto-detect
+ * bên dưới quét tới (chỉ quét cột tenant_id) nên không cần thêm vào COVERED_TABLES.
  */
 
 // Bảng CÓ policy SELECT cho client — dùng phép kiểm "thấy dòng mình, không thấy dòng người khác".
