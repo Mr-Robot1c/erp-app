@@ -15,7 +15,13 @@ type NavGroup = { label: string; items: NavItem[] };
 
 /** Sidebar 3 nhóm — playbook/03-chuan-giao-dien.md mục B. Mục chưa xây hiện mờ + số lô để
  * user thấy bản đồ tiến độ (lô lấy từ docs/plans/tien-do-web-erp.md); "team" không phải View
- * trong PERMS (packages/core/src/perms.ts) — chỉ admin thấy, lọc riêng bên dưới. */
+ * trong PERMS (packages/core/src/perms.ts) — chỉ admin thấy, lọc riêng bên dưới. "set" (Cài đặt,
+ * lô 1.4) CŨNG lọc riêng theo admin dù có trong View: PERMS.director.views hiện là VIEWS đầy đủ
+ * (gồm cả set/sc/assign — rộng hơn ALLV của demo/ui.js vốn không có 3 mục này cho director) —
+ * trang /app/settings tự chặn non-admin, để canView quyết định hiển thị sẽ ra link cụt cho
+ * director; ép admin-only ở đây cho khớp UI-hành vi mà không đụng PERMS chung (quyết định lô 1.2,
+ * ngoài phạm vi lô 1.4). */
+const ADMIN_ONLY_VIEWS = new Set<NavItem["view"]>(["team", "set"]);
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "LÀM VIỆC",
@@ -39,7 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { view: "master", label: "Danh mục", href: "/app/master", built: false },
       { view: "team", label: "Thành viên", href: "/app/team", built: true },
-      { view: "set", label: "Cài đặt", href: "/app/settings", built: false, note: "lô 1.4" },
+      { view: "set", label: "Cài đặt", href: "/app/settings", built: true },
       { view: "audit", label: "Nhật ký", href: "/app/audit", built: false },
     ],
   },
@@ -71,7 +77,7 @@ export function AppShell({
         </div>
         {NAV_GROUPS.map((group) => {
           const items = group.items.filter((item) =>
-            item.view === "team" ? role === "admin" : canView(role, item.view as View),
+            ADMIN_ONLY_VIEWS.has(item.view) ? role === "admin" : canView(role, item.view as View),
           );
           if (!items.length) return null;
           return (
