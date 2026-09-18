@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SignOutButton } from "./sign-out-button";
 
 const INDUSTRIES = [
   { code: "default", name: "Thương mại – dịch vụ (mặc định)" },
@@ -109,6 +110,9 @@ export function OnboardingForm({ email }: { email: string }) {
           Hoàn tất đăng ký
         </button>
       </form>
+      <div className="mt-4">
+        <SignOutButton />
+      </div>
     </main>
   );
 }

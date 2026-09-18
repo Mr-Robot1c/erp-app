@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-const email = `e2e+${Date.now()}@test.local`;
+// random suffix (không chỉ Date.now()) — nhiều spec chạy song song nhiều worker có thể cùng millisecond,
+// trùng email làm signUp báo "đã đăng ký" (gặp thật khi thêm ac-01 chạy cùng lúc).
+const email = `e2e-ac00+${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`;
 const password = "matkhau-e2e-1";
 
 test("AC-00 đăng ký, đăng xuất, đăng nhập lại được", async ({ page }) => {

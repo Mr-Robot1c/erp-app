@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-const email = `e2e+${Date.now()}@test.local`;
+// random suffix (không chỉ Date.now()) — nhiều spec chạy song song nhiều worker có thể cùng millisecond.
+const email = `e2e-ac01+${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`;
 const password = "matkhau-e2e-1";
 
 test("AC-01 đăng ký tài khoản mới -> onboarding -> vào /app thấy tên doanh nghiệp", async ({ page }) => {
