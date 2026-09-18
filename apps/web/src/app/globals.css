@@ -12,13 +12,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Giao diện thiết kế cho nền sáng; máy bật dark mode từng làm chữ sáng trên thẻ trắng
+   (không đọc được) — khoá màu cố định, hỗ trợ dark mode thật để "Để sau". */
 body {
   background: var(--background);
   color: var(--foreground);
