@@ -73,6 +73,49 @@ export async function createTestTenant(opts: { role?: Role } = {}): Promise<Test
   };
 }
 
+export type TenantMember = {
+  userId: string;
+  email: string;
+  role: Role;
+  signIn: () => Promise<{ client: ReturnType<typeof createClient>; accessToken: string }>;
+  cleanup: () => Promise<void>;
+};
+
+/** Thêm 1 user với vai bất kỳ vào tenant CÓ SẴN (ghi thẳng membership, không qua invite/accept —
+ * dùng cho test ma trận quyền cần nhiều vai trên CÙNG 1 tenant, lô 1.2). cleanup() chỉ xoá user
+ * (membership tự mất khi tenant gốc bị xoá qua createTestTenant().cleanup()). */
+export async function addTenantMember(tenantId: string, role: Role): Promise<TenantMember> {
+  const rand = Math.random().toString(36).slice(2, 10);
+  const email = `t_test_${rand}@test.local`;
+
+  const { data: userData, error: userErr } = await admin.auth.admin.createUser({
+    email,
+    password: PASSWORD,
+    email_confirm: true,
+  });
+  if (userErr || !userData.user) throw userErr ?? new Error("createUser thất bại");
+  const userId = userData.user.id;
+
+  await sql`
+    insert into memberships (user_id, tenant_id, role, display_name)
+    values (${userId}, ${tenantId}, ${role}, ${"Tester " + rand})`;
+
+  return {
+    userId,
+    email,
+    role,
+    async signIn() {
+      const client = createClient(SUPABASE_URL, ANON_KEY);
+      const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+      if (error || !data.session) throw error ?? new Error("signIn thất bại");
+      return { client, accessToken: data.session.access_token };
+    },
+    async cleanup() {
+      await admin.auth.admin.deleteUser(userId);
+    },
+  };
+}
+
 export type BareUser = {
   userId: string;
   email: string;
