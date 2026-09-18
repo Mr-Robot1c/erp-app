@@ -51,3 +51,13 @@ export const setStatusSchema = z.object({
   note: z.string().optional(),
 });
 export type SetStatusInput = z.infer<typeof setStatusSchema>;
+
+export const INDUSTRY_CODES = ["default", "trade", "construction", "manufacturing"] as const;
+
+export const registerTenantSchema = z.object({
+  name: z.string().trim().min(1, "Thiếu tên doanh nghiệp"),
+  taxCode: z.string().trim().min(8, "Mã số thuế không hợp lệ").max(20, "Mã số thuế không hợp lệ"),
+  industry: z.enum(INDUSTRY_CODES),
+  withSample: z.boolean().default(true),
+});
+export type RegisterTenantInput = z.infer<typeof registerTenantSchema>;
