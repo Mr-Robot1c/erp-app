@@ -50,6 +50,15 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     call: (token) => post("/api/team/remove", token, { userId: randomUUID() }),
     allowed: ["admin"],
   },
+  {
+    name: "POST /api/expenses",
+    call: (token) => post("/api/expenses", token, { amount: 100_000, purpose: "CASES 403" }),
+    allowed: ROLES.filter((r) => r !== "director"), // director không có action 'exp' (PERMS)
+  },
+  // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
+  // MỘT chứng từ cụ thể (chain[approvals.length] === vai gọi HOẶC admin), không phải 1 danh sách
+  // vai tĩnh theo endpoint như các case trên — cùng lý do /api/team/accept cũng không có ở đây.
+  // Đã kiểm đầy đủ các nhánh forbidden của nó ở tests/db/approvals.test.ts (tự duyệt, sai lượt).
 ];
 
 describe("ma trận quyền — CASES 403 (lô 1.2)", () => {

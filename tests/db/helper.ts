@@ -251,6 +251,14 @@ export async function createInviteFixture(tenantId: string, email: string, role:
   return row.id as string;
 }
 
+export async function createTaskFixture(tenantId: string, documentId: string, role: string) {
+  const [row] = await sql`
+    insert into tasks (tenant_id, role, text, document_id)
+    values (${tenantId}, ${role}, 'fixture', ${documentId})
+    returning id`;
+  return row.id as string;
+}
+
 /** Đếm bảng có cột tenant_id trong information_schema — dùng để tự phát hiện bảng mới chưa được
  * isolation.test.ts phủ (lô 0.2b việc 3). */
 export async function listTenantScopedTables(): Promise<string[]> {
