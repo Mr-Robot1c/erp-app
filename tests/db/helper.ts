@@ -7,7 +7,10 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const PASSWORD = "Test@12345";
 
-export const sql = postgres(process.env.SUPABASE_DB_URL!, { prepare: false, max: 3 });
+// idle_timeout: nhiều file test dùng CHUNG client này (fileParallelism:false, cùng worker) — không file nào
+// được gọi sql.end() (file khác đang cần), nên để pool TỰ đóng khi rảnh thay vì đóng tay (tránh treo tiến
+// trình vitest vô thời hạn, bug thật gặp ở lô 0.2).
+export const sql = postgres(process.env.SUPABASE_DB_URL!, { prepare: false, max: 3, idle_timeout: 2 });
 
 export const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -79,6 +82,48 @@ export async function createItem(tenantId: string, code: string) {
     values (${tenantId}, ${code}, ${"Mặt hàng " + code}, 'goods')
     returning id`;
   return row.id as string;
+}
+
+export async function createWarehouse(tenantId: string, code: string) {
+  const [row] = await sql`
+    insert into warehouses (tenant_id, code, name)
+    values (${tenantId}, ${code}, ${"Kho " + code})
+    returning id`;
+  return row.id as string;
+}
+
+export async function createAccount(tenantId: string, code: string) {
+  const [row] = await sql`
+    insert into accounts (tenant_id, code, name)
+    values (${tenantId}, ${code}, ${"Tài khoản " + code})
+    returning id`;
+  return row.id as string;
+}
+
+export async function createPeriod(tenantId: string, ym: string) {
+  const [row] = await sql`
+    insert into periods (tenant_id, ym)
+    values (${tenantId}, ${ym})
+    returning id`;
+  return row.id as string;
+}
+
+export async function createAuditLog(tenantId: string, action: string) {
+  const [row] = await sql`
+    insert into audit_log (tenant_id, actor, action, ref, detail)
+    values (${tenantId}, 'test', ${action}, '', '')
+    returning id`;
+  return String(row.id);
+}
+
+/** Đếm bảng có cột tenant_id trong information_schema — dùng để tự phát hiện bảng mới chưa được
+ * isolation.test.ts phủ (lô 0.2b việc 3). */
+export async function listTenantScopedTables(): Promise<string[]> {
+  const rows = await sql<{ table_name: string }[]>`
+    select distinct table_name from information_schema.columns
+    where table_schema = 'public' and column_name = 'tenant_id'
+    order by table_name`;
+  return rows.map((r) => r.table_name);
 }
 
 export function apiUrl(path: string) {
