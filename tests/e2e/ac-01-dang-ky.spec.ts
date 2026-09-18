@@ -20,5 +20,5 @@ test("AC-01 đăng ký tài khoản mới -> onboarding -> vào /app thấy tên
 
   await expect(page).toHaveURL(/\/app/, { timeout: 20_000 });
   await expect(page.locator("#tenant-title")).toHaveText("Công ty E2E Test");
-  await expect(page.locator("#user-role")).toHaveText("admin");
+  await expect(page.locator("#user-role")).toHaveText("Quản trị viên"); // ROLE_LABEL.admin (khung /app/* lô 1.2)
 });

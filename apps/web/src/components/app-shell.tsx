@@ -1,0 +1,124 @@
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ROLE_LABEL, canView, type Role, type View } from "@erp/core";
+import { SignOutButton } from "./sign-out-button";
+
+type NavItem = {
+  view: View | "team";
+  label: string;
+  href: string;
+  built: boolean;
+  note?: string;
+};
+type NavGroup = { label: string; items: NavItem[] };
+
+/** Sidebar 3 nhóm — playbook/03-chuan-giao-dien.md mục B. Mục chưa xây hiện mờ + số lô để
+ * user thấy bản đồ tiến độ (lô lấy từ docs/plans/tien-do-web-erp.md); "team" không phải View
+ * trong PERMS (packages/core/src/perms.ts) — chỉ admin thấy, lọc riêng bên dưới. */
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "LÀM VIỆC",
+    items: [
+      { view: "dash", label: "Tổng quan", href: "/app", built: true },
+      { view: "tasks", label: "Việc cần làm", href: "/app/tasks", built: false, note: "lô 1.3" },
+    ],
+  },
+  {
+    label: "NGHIỆP VỤ",
+    items: [
+      { view: "sales", label: "Bán hàng", href: "/app/sales", built: false, note: "lô 2.1" },
+      { view: "buy", label: "Mua hàng", href: "/app/buy", built: false, note: "lô 3.1" },
+      { view: "stock", label: "Kho", href: "/app/stock", built: false, note: "lô 2.3" },
+      { view: "acc", label: "Kế toán", href: "/app/acc", built: false, note: "lô 2.5" },
+      { view: "int", label: "Nội bộ", href: "/app/int", built: false, note: "lô 5.1" },
+    ],
+  },
+  {
+    label: "QUẢN TRỊ",
+    items: [
+      { view: "master", label: "Danh mục", href: "/app/master", built: false },
+      { view: "team", label: "Thành viên", href: "/app/team", built: true },
+      { view: "set", label: "Cài đặt", href: "/app/settings", built: false, note: "lô 1.4" },
+      { view: "audit", label: "Nhật ký", href: "/app/audit", built: false },
+    ],
+  },
+];
+
+export function AppShell({
+  tenantName,
+  displayName,
+  role,
+  fontClassName,
+  children,
+}: {
+  tenantName: string;
+  displayName: string;
+  role: Role;
+  fontClassName: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <div
+      className={`${fontClassName} grid min-h-screen grid-cols-[220px_1fr] bg-[var(--bg)] text-[var(--ink)] max-[760px]:grid-cols-1`}
+    >
+      <aside className="flex flex-col gap-0.5 border-r border-[var(--line)] bg-[var(--sf)] p-2.5 max-[760px]:flex-row max-[760px]:flex-wrap max-[760px]:border-r-0 max-[760px]:border-b max-[760px]:border-[var(--line)]">
+        <div className="px-2.5 pt-1.5 pb-3 text-[15px] font-bold max-[760px]:w-full">
+          ERP
+          <small className="mt-0.5 block text-[11px] font-normal text-[var(--ink2)]">{tenantName}</small>
+        </div>
+        {NAV_GROUPS.map((group) => {
+          const items = group.items.filter((item) =>
+            item.view === "team" ? role === "admin" : canView(role, item.view as View),
+          );
+          if (!items.length) return null;
+          return (
+            <div key={group.label} className="mt-1.5 first:mt-0">
+              <div className="px-2.5 pb-1 text-[10.5px] font-semibold tracking-wide text-[var(--ink2)]">
+                {group.label}
+              </div>
+              {items.map((item) =>
+                item.built ? (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center justify-between rounded-md px-2.5 py-2 text-[13.5px] ${
+                      pathname === item.href
+                        ? "bg-[var(--accs)] font-semibold text-[var(--acc)]"
+                        : "text-[var(--ink)] hover:bg-[var(--lane)]"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <div
+                    key={item.href}
+                    className="flex items-center justify-between rounded-md px-2.5 py-2 text-[13.5px] text-[var(--ink2)] opacity-60"
+                  >
+                    {item.label}
+                    {item.note && <span className="text-[10.5px]">{item.note}</span>}
+                  </div>
+                ),
+              )}
+            </div>
+          );
+        })}
+      </aside>
+      <div className="flex flex-col">
+        <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-[var(--line)] bg-[var(--bg)] px-5 py-3">
+          <span id="tenant-title" className="font-semibold">
+            {tenantName}
+          </span>
+          <span className="flex-1" />
+          <span className="text-sm text-[var(--ink2)]">
+            {displayName} · <b id="user-role" className="font-medium text-[var(--ink)]">{ROLE_LABEL[role]}</b>
+          </span>
+          <SignOutButton />
+        </header>
+        <main className="flex-1 px-5 py-6">{children}</main>
+      </div>
+    </div>
+  );
+}

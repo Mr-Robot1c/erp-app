@@ -75,22 +75,24 @@ export function TeamManager({
   }
 
   return (
-    <main className="mx-auto mt-16 w-full max-w-2xl rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-bold">Thành viên & vai</h1>
-      {msg && <p className="mt-2 text-sm text-red-600">{msg}</p>}
+    <div className="max-w-2xl">
+      <h1 className="text-lg font-semibold">Thành viên & vai</h1>
+      {msg && <p className="mt-2 text-sm text-[var(--bad)]">{msg}</p>}
 
-      <section className="mt-4" id="team-members">
-        <h2 className="text-sm font-semibold text-zinc-600">Thành viên ({members.length})</h2>
+      <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4" id="team-members">
+        <h2 className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">
+          Thành viên ({members.length})
+        </h2>
         <table className="mt-2 w-full text-sm">
           <tbody>
             {members.map((mm) => (
-              <tr key={mm.user_id} className="border-b border-zinc-100" data-user-id={mm.user_id}>
+              <tr key={mm.user_id} className="border-b border-[var(--line)] last:border-b-0" data-user-id={mm.user_id}>
                 <td className="py-2">{mm.display_name}</td>
                 <td className="py-2">
                   <select
                     value={mm.role}
                     onChange={(e) => void changeRole(mm.user_id, e.target.value as Role)}
-                    className="rounded border border-zinc-300 px-2 py-1"
+                    className="rounded-md border border-[var(--line)] bg-[var(--sf)] px-2 py-1"
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
@@ -102,7 +104,7 @@ export function TeamManager({
                 <td className="py-2 text-right">
                   {mm.user_id !== currentUserId && (
                     <button
-                      className="text-red-600 hover:underline"
+                      className="text-[var(--bad)] hover:underline"
                       onClick={() => void remove(mm.user_id)}
                     >
                       Xoá
@@ -115,8 +117,10 @@ export function TeamManager({
         </table>
       </section>
 
-      <section className="mt-6" id="team-invites">
-        <h2 className="text-sm font-semibold text-zinc-600">Lời mời đang chờ ({invites.length})</h2>
+      <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4" id="team-invites">
+        <h2 className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">
+          Lời mời đang chờ ({invites.length})
+        </h2>
         <ul className="mt-2 text-sm">
           {invites.map((inv) => (
             <li key={inv.id}>
@@ -126,8 +130,8 @@ export function TeamManager({
         </ul>
       </section>
 
-      <section className="mt-6 rounded-lg border border-zinc-200 p-4">
-        <h2 className="text-sm font-semibold text-zinc-600">Mời người mới</h2>
+      <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4">
+        <h2 className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">Mời người mới</h2>
         <form
           className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end"
           onSubmit={(e) => {
@@ -143,7 +147,7 @@ export function TeamManager({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2"
+              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
             />
           </label>
           <label className="text-sm">
@@ -152,7 +156,7 @@ export function TeamManager({
               id="invite-role"
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2"
+              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -165,12 +169,12 @@ export function TeamManager({
             id="btn-invite"
             type="submit"
             disabled={busy}
-            className="rounded-md bg-blue-700 px-3 py-2 font-medium text-white disabled:opacity-50"
+            className="rounded-md bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
           >
             Gửi lời mời
           </button>
         </form>
       </section>
-    </main>
+    </div>
   );
 }

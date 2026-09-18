@@ -19,3 +19,38 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Palette chuẩn giao diện (playbook/03-chuan-giao-dien.md mục G) — chép nguyên bộ biến CSS
+   của demo/index.html. Dùng cho khung /app/* trở đi; nền sáng cố định, dark mode "Để sau". */
+:root {
+  --bg: #f3f4f1;
+  --sf: #ffffff;
+  --ink: #1b2024;
+  --ink2: #5b6470;
+  --line: #dad9d2;
+  --acc: #2f5d8a;
+  --accs: #e4edf5;
+  --ok: #2e6b4f;
+  --oks: #e3f0e9;
+  --warn: #b5641f;
+  --warns: #fbebdd;
+  --bad: #a83a2e;
+  --bads: #f8e3e0;
+  --ext: #7a5a1e;
+  --exts: #f5ecd9;
+  --lane: #f8f8f5;
+}
+
+.pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.pill.draft { color: var(--ink2); }
+.pill.pending { background: var(--warns); color: var(--warn); border-color: transparent; }
+.pill.confirmed, .pill.partial { background: var(--accs); color: var(--acc); border-color: transparent; }
+.pill.done { background: var(--oks); color: var(--ok); border-color: transparent; }
+.pill.cancelled { background: var(--bads); color: var(--bad); border-color: transparent; }
