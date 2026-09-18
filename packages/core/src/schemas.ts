@@ -92,3 +92,13 @@ export const approvalDecisionSchema = z.object({
   reason: z.string().trim().min(1).optional(),
 });
 export type ApprovalDecisionInput = z.infer<typeof approvalDecisionSchema>;
+
+/** 4 ngưỡng cấu hình doanh nghiệp (lô 1.4). Chuỗi duyệt ĐANG ĐI không đổi khi sửa ngưỡng — chain
+ * đã snapshot vào meta lúc tạo chứng từ (AC-05). */
+export const settingsSchema = z.object({
+  expThreshold: z.number().int().positive("Phải lớn hơn 0"),
+  poThreshold: z.number().int().positive("Phải lớn hơn 0"),
+  tolerancePct: z.number().min(0).max(10, "Dung sai 0–10%"),
+  terms: z.number().int().positive("Phải lớn hơn 0"),
+});
+export type SettingsInput = z.infer<typeof settingsSchema>;
