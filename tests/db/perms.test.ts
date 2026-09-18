@@ -55,6 +55,12 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     call: (token) => post("/api/expenses", token, { amount: 100_000, purpose: "CASES 403" }),
     allowed: ROLES.filter((r) => r !== "director"), // director không có action 'exp' (PERMS)
   },
+  {
+    name: "POST /api/tenant/settings",
+    call: (token) =>
+      post("/api/tenant/settings", token, { expThreshold: 10_000_000, poThreshold: 20_000_000, tolerancePct: 2, terms: 30 }),
+    allowed: ["admin"],
+  },
   // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
   // MỘT chứng từ cụ thể (chain[approvals.length] === vai gọi HOẶC admin), không phải 1 danh sách
   // vai tĩnh theo endpoint như các case trên — cùng lý do /api/team/accept cũng không có ở đây.
