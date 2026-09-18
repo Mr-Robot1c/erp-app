@@ -62,7 +62,12 @@ export async function createTestTenant(opts: { role?: Role } = {}): Promise<Test
       await sql`update memberships set role = ${role} where user_id = ${userId}`;
     },
     async cleanup() {
-      await sql`delete from tenants where id = ${tenantId}`;
+      // Xoá tenant cascade xuống documents — nếu có chứng từ đã confirm, trg_doc_immutable
+      // chặn DELETE trừ khi bật van `app.purge` (xem supabase/migrations/0003_documents.sql).
+      await sql.begin(async (t) => {
+        await t`set local app.purge = 'on'`;
+        await t`delete from tenants where id = ${tenantId}`;
+      });
       await admin.auth.admin.deleteUser(userId);
     },
   };
@@ -114,6 +119,42 @@ export async function createAuditLog(tenantId: string, action: string) {
     values (${tenantId}, 'test', ${action}, '', '')
     returning id`;
   return String(row.id);
+}
+
+export async function createDocFixture(tenantId: string, docNo: string) {
+  const [row] = await sql`
+    insert into documents (tenant_id, doc_type, doc_no)
+    values (${tenantId}, 'QUOTE', ${docNo})
+    returning id`;
+  return row.id as string;
+}
+
+export async function createDocLineFixture(tenantId: string, documentId: string) {
+  const [row] = await sql`
+    insert into document_lines (tenant_id, document_id, line_no, qty, price)
+    values (${tenantId}, ${documentId}, 1, 1, 1000)
+    returning id`;
+  return row.id as string;
+}
+
+export async function createDocHistoryFixture(tenantId: string, documentId: string) {
+  const [row] = await sql`
+    insert into doc_status_history (tenant_id, document_id, to_status)
+    values (${tenantId}, ${documentId}, 'draft')
+    returning id`;
+  return String(row.id);
+}
+
+export async function createDocSequenceFixture(tenantId: string, docType: string) {
+  await sql`
+    insert into doc_sequences (tenant_id, doc_type, last_no) values (${tenantId}, ${docType}, 1)
+    on conflict (tenant_id, doc_type) do nothing`;
+}
+
+export async function createIdempotencyKeyFixture(tenantId: string, key: string) {
+  await sql`
+    insert into idempotency_keys (tenant_id, key, endpoint, response)
+    values (${tenantId}, ${key}, 'test:fixture', '{}'::jsonb)`;
 }
 
 /** Đếm bảng có cột tenant_id trong information_schema — dùng để tự phát hiện bảng mới chưa được

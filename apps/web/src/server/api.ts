@@ -44,13 +44,14 @@ export async function withIdempotency<T>(
     returning tenant_id`;
 
   if (inserted.length === 0) {
-    const [existing] = await s<{ endpoint: string; response: T }[]>`
+    const [existing] = await s<{ endpoint: string; response: unknown }[]>`
       select endpoint, response from idempotency_keys where tenant_id = ${tenantId} and key = ${key}`;
     if (!existing) throw new AppError("internal", "idempotency_keys: mất dòng sau conflict");
     if (existing.endpoint !== fingerprint) {
       throw new AppError("conflict", "Idempotency-Key đã dùng cho yêu cầu khác");
     }
-    return existing.response;
+    // Cột jsonb không tự parse thành object qua driver ở đường này -> parse tường minh khi cần.
+    return (typeof existing.response === "string" ? JSON.parse(existing.response) : existing.response) as T;
   }
 
   const result = await fn();

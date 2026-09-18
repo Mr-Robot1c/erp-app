@@ -7,6 +7,11 @@ import {
   createAccount,
   createPeriod,
   createAuditLog,
+  createDocFixture,
+  createDocLineFixture,
+  createDocHistoryFixture,
+  createDocSequenceFixture,
+  createIdempotencyKeyFixture,
   listTenantScopedTables,
   apiUrl,
   type TestTenant,
@@ -16,11 +21,13 @@ import {
  * Bài kiểm tách biệt tenant — chạy ở MỌI commit từ lô 0.2 (00-luat-thi-cong).
  * Nâng cấp lô 0.2b (kéo từ GĐ9 xuống): tự phát hiện bảng mới qua information_schema,
  * fixture dương tính cho CẢ hai tenant, và thử ghi trái phép bằng anon client.
+ * Nâng cấp lô 0.3: thêm các bảng khung chứng từ (documents, document_lines, doc_status_history
+ * có SELECT policy; doc_sequences, idempotency_keys KHÔNG có policy nào — client không đọc được
+ * kể cả dữ liệu của chính mình, xử lý riêng).
  */
 
-// Bảng đã được test này phủ — thêm bảng mới (lô sau) phải thêm vào đây VÀ code fixture/insert
-// tương ứng bên dưới, không thì test "tự phát hiện bảng mới" sẽ đỏ có chủ đích.
-const COVERED_TABLES = [
+// Bảng CÓ policy SELECT cho client — dùng phép kiểm "thấy dòng mình, không thấy dòng người khác".
+const READ_TABLES = [
   "memberships",
   "partners",
   "items",
@@ -28,14 +35,24 @@ const COVERED_TABLES = [
   "accounts",
   "periods",
   "audit_log",
+  "documents",
+  "document_lines",
+  "doc_status_history",
 ] as const;
+
+// Bảng RLS bật nhưng KHÔNG policy nào (kể cả SELECT) — client luôn thấy 0 dòng, dù là tenant nào.
+const NO_ACCESS_TABLES = ["doc_sequences", "idempotency_keys"] as const;
+
+// Toàn bộ bảng đã được test này phủ — thêm bảng mới (lô sau) phải thêm vào đây (đúng nhóm) VÀ
+// code fixture/insert tương ứng bên dưới, không thì test "tự phát hiện bảng mới" sẽ đỏ có chủ đích.
+const COVERED_TABLES = [...READ_TABLES, ...NO_ACCESS_TABLES] as const;
 
 type Filter = { column: string; value: unknown }[];
 
 type WriteCheck = {
   table: (typeof COVERED_TABLES)[number];
   /** null = bỏ qua test insert (payload hợp lệ đụng constraint khác không liên quan RLS, vd memberships) */
-  insertPayload: ((b: TestTenant, uniq: string) => Record<string, unknown>) | null;
+  insertPayload: ((b: TestTenant, uniq: string, fixtureIds: Record<string, string>) => Record<string, unknown>) | null;
   ownRowFilter: (b: TestTenant, fixtureIds: Record<string, string>) => Filter;
   updateColumn: string;
   updateValue: unknown;
@@ -94,6 +111,51 @@ const WRITE_CHECKS: WriteCheck[] = [
     updateColumn: "detail",
     updateValue: "bị sửa trái phép",
   },
+  {
+    table: "documents",
+    insertPayload: (b, uniq) => ({ tenant_id: b.tenantId, doc_type: "QUOTE", doc_no: `HACK_${uniq}` }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.documentB }],
+    updateColumn: "doc_no",
+    updateValue: "HACKED-9999",
+  },
+  {
+    table: "document_lines",
+    insertPayload: (b, _uniq, ids) => ({
+      tenant_id: b.tenantId,
+      document_id: ids.documentB,
+      line_no: 999,
+      qty: 1,
+      price: 1,
+    }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.docLineB }],
+    updateColumn: "qty",
+    updateValue: 999,
+  },
+  {
+    table: "doc_status_history",
+    insertPayload: (b, uniq, ids) => ({
+      tenant_id: b.tenantId,
+      document_id: ids.documentB,
+      to_status: `hack_${uniq}`,
+    }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.docHistoryB }],
+    updateColumn: "note",
+    updateValue: "bị sửa trái phép",
+  },
+  {
+    table: "doc_sequences",
+    insertPayload: (b) => ({ tenant_id: b.tenantId, doc_type: "ADJ", last_no: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "doc_type", value: ids.docSeqTypeB }],
+    updateColumn: "last_no",
+    updateValue: 999,
+  },
+  {
+    table: "idempotency_keys",
+    insertPayload: (b, uniq) => ({ tenant_id: b.tenantId, key: `hack_${uniq}`, endpoint: "x", response: {} }),
+    ownRowFilter: (_b, ids) => [{ column: "key", value: ids.idempotencyKeyB }],
+    updateColumn: "endpoint",
+    updateValue: "hacked",
+  },
 ];
 
 describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
@@ -113,6 +175,11 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     await createAccount(a.tenantId, "AA1");
     await createPeriod(a.tenantId, "2099-01");
     await createAuditLog(a.tenantId, "seed");
+    const docIdA = await createDocFixture(a.tenantId, "TESTA-0001");
+    await createDocLineFixture(a.tenantId, docIdA);
+    await createDocHistoryFixture(a.tenantId, docIdA);
+    await createDocSequenceFixture(a.tenantId, "QUOTE");
+    await createIdempotencyKeyFixture(a.tenantId, "seed-a");
 
     fixtureIdsB.partnerB = await createPartner(b.tenantId, "PB0");
     fixtureIdsB.itemB = await createItem(b.tenantId, "IB0");
@@ -120,6 +187,13 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     fixtureIdsB.accountB = await createAccount(b.tenantId, "AB0");
     fixtureIdsB.periodB = await createPeriod(b.tenantId, "2099-03");
     fixtureIdsB.auditLogB = await createAuditLog(b.tenantId, "seed");
+    fixtureIdsB.documentB = await createDocFixture(b.tenantId, "TESTB-0001");
+    fixtureIdsB.docLineB = await createDocLineFixture(b.tenantId, fixtureIdsB.documentB);
+    fixtureIdsB.docHistoryB = await createDocHistoryFixture(b.tenantId, fixtureIdsB.documentB);
+    await createDocSequenceFixture(b.tenantId, "QUOTE");
+    fixtureIdsB.docSeqTypeB = "QUOTE";
+    fixtureIdsB.idempotencyKeyB = "seed-b";
+    await createIdempotencyKeyFixture(b.tenantId, fixtureIdsB.idempotencyKeyB);
   });
 
   afterAll(async () => {
@@ -141,7 +215,7 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     expect((data ?? []).some((row) => row.id === a.tenantId)).toBe(false);
   });
 
-  it.each(COVERED_TABLES)("bảng %s: B không đọc được dòng của A qua API + RLS (fixture dương tính)", async (table) => {
+  it.each(READ_TABLES)("bảng %s: B không đọc được dòng của A qua API + RLS (fixture dương tính)", async (table) => {
     const { client } = await b.signIn();
     const { data, error } = await client.from(table).select("*");
     expect(error).toBeNull();
@@ -149,6 +223,13 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     expect((data ?? []).length).toBeGreaterThan(0);
     for (const row of data ?? []) expect(row.tenant_id).toBe(b.tenantId);
     expect((data ?? []).some((row) => row.tenant_id === a.tenantId)).toBe(false);
+  });
+
+  it.each(NO_ACCESS_TABLES)("bảng %s: RLS bật nhưng không policy nào -> B luôn thấy 0 dòng, kể cả của chính mình", async (table) => {
+    const { client } = await b.signIn();
+    const { data, error } = await client.from(table).select("*");
+    expect(error).toBeNull();
+    expect(data ?? []).toHaveLength(0);
   });
 
   it("B lấy theo id bản ghi của A (partner, item) -> 0 dòng", async () => {
@@ -166,7 +247,7 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
       const uniq = Math.random().toString(36).slice(2, 8);
 
       if (check.insertPayload) {
-        const { data, error } = await client.from(check.table).insert(check.insertPayload(b, uniq)).select();
+        const { data, error } = await client.from(check.table).insert(check.insertPayload(b, uniq, fixtureIdsB)).select();
         // RLS không có policy insert -> Postgres từ chối (error) HOẶC trả rỗng, KHÔNG được thành công có dữ liệu.
         if (!error) expect(data ?? []).toHaveLength(0);
       }
