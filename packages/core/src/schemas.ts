@@ -78,3 +78,17 @@ export const removeMemberSchema = z.object({
   userId: z.string().uuid(),
 });
 export type RemoveMemberInput = z.infer<typeof removeMemberSchema>;
+
+export const expenseSchema = z.object({
+  amount: z.number().int().positive("Số tiền phải lớn hơn 0"),
+  purpose: z.string().trim().min(1, "Thiếu lý do đề xuất"),
+  extId: z.string().uuid().nullable().optional(),
+});
+export type ExpenseInput = z.infer<typeof expenseSchema>;
+
+export const approvalDecisionSchema = z.object({
+  docId: z.string().uuid(),
+  decision: z.enum(["approve", "reject"]),
+  reason: z.string().trim().min(1).optional(),
+});
+export type ApprovalDecisionInput = z.infer<typeof approvalDecisionSchema>;
