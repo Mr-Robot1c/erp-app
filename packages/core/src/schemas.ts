@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DOC_TYPES, STATUSES } from "./labels";
+import { DOC_TYPES, STATUSES, ROLES } from "./labels";
 
 /** Mã danh mục: chữ/số/gạch, 1-32 ký tự (02-quyet-dinh mục C). */
 export const CODE_RE = /^[A-Za-z0-9_-]{1,32}$/;
@@ -61,3 +61,20 @@ export const registerTenantSchema = z.object({
   withSample: z.boolean().default(true),
 });
 export type RegisterTenantInput = z.infer<typeof registerTenantSchema>;
+
+export const inviteSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Email không hợp lệ"),
+  role: z.enum(ROLES),
+});
+export type InviteInput = z.infer<typeof inviteSchema>;
+
+export const setRoleSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(ROLES),
+});
+export type SetRoleInput = z.infer<typeof setRoleSchema>;
+
+export const removeMemberSchema = z.object({
+  userId: z.string().uuid(),
+});
+export type RemoveMemberInput = z.infer<typeof removeMemberSchema>;
