@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createTestTenant, createBareUser, apiUrl, sql, type TestTenant, type BareUser } from "./helper";
+import { createTestTenant, createBareUser, admin, sql, apiUrl, PASSWORD, type TestTenant, type BareUser } from "./helper";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 async function post(path: string, token: string, body: unknown) {
   const res = await fetch(apiUrl(path), {
@@ -10,55 +14,86 @@ async function post(path: string, token: string, body: unknown) {
   return { status: res.status, json: await res.json() };
 }
 
+/** auth.admin.inviteUserByEmail kiểm domain có MX thật — @test.local/@example.com bị từ chối
+ * "email_address_invalid" (bắt gặp thật khi viết test này). Domain MX thật (gmail.com) qua được
+ * kiểm tra dù local-part không tồn tại; Supabase chỉ validate domain lúc gọi API, không xác minh
+ * hộp thư thật, nên an toàn dùng cho test (không có ai nhận được mail). */
+function realMxTestEmail(prefix: string) {
+  return `t_test_${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}@gmail.com`;
+}
+
+/** invite tạo user thật qua Supabase (không đặt mật khẩu) — set mật khẩu bằng admin API để giả lập
+ * "người được mời bấm link, đặt mật khẩu", rồi đăng nhập được bằng password bình thường. */
+async function claimInvite(email: string) {
+  const [row] = await sql`select id from auth.users where email = ${email}`;
+  if (!row) throw new Error(`Không thấy user vừa được invite: ${email}`);
+  const { error } = await admin.auth.admin.updateUserById(row.id as string, {
+    password: PASSWORD,
+    email_confirm: true,
+  });
+  if (error) throw error;
+  const client = createClient(SUPABASE_URL, ANON_KEY);
+  const { data, error: signInErr } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+  if (signInErr || !data.session) throw signInErr ?? new Error("signIn thất bại sau khi claim invite");
+  return { userId: row.id as string, accessToken: data.session.access_token };
+}
+
 describe("mời người + nhận lời mời", () => {
   let tenant: TestTenant;
-  let invitee: BareUser;
+  let invitedUserId: string | null;
   afterEach(async () => {
-    await invitee?.cleanup();
+    if (invitedUserId) await admin.auth.admin.deleteUser(invitedUserId);
+    invitedUserId = null;
     await tenant?.cleanup();
   });
 
-  it("mời email X (role staff) -> X đăng nhập, accept -> membership đúng vai, invite -> accepted", async () => {
+  it("mời email X (role staff) -> X đặt mật khẩu, accept -> membership đúng vai, invite -> accepted", async () => {
     tenant = await createTestTenant({ role: "admin" });
-    invitee = await createBareUser();
     const { accessToken: adminToken } = await tenant.signIn();
+    const email = realMxTestEmail("invite");
 
-    const inv = await post("/api/team/invite", adminToken, { email: invitee.email, role: "staff" });
+    const inv = await post("/api/team/invite", adminToken, { email, role: "staff" });
     expect(inv.json.ok, JSON.stringify(inv.json)).toBe(true);
     expect(inv.json.data.status).toBe("sent");
 
-    const { accessToken: inviteeToken } = await invitee.signIn();
+    const { userId, accessToken: inviteeToken } = await claimInvite(email);
+    invitedUserId = userId;
+
     const acc = await post("/api/team/accept", inviteeToken, {});
     expect(acc.json.ok, JSON.stringify(acc.json)).toBe(true);
     expect(acc.json.data.tenantId).toBe(tenant.tenantId);
 
     const [membership] = await sql`
-      select role from memberships where user_id = ${invitee.userId} and tenant_id = ${tenant.tenantId}`;
+      select role from memberships where user_id = ${userId} and tenant_id = ${tenant.tenantId}`;
     expect(membership?.role).toBe("staff");
 
-    const [inviteRow] = await sql`select status from invites where tenant_id = ${tenant.tenantId} and email = ${invitee.email}`;
+    const [inviteRow] = await sql`select status from invites where tenant_id = ${tenant.tenantId} and email = ${email}`;
     expect(inviteRow?.status).toBe("accepted");
   });
 
   it("mời trùng email 2 lần -> duplicate", async () => {
     tenant = await createTestTenant({ role: "admin" });
     const { accessToken } = await tenant.signIn();
-    const email = `t_test_dup_${Math.random().toString(36).slice(2, 8)}@test.local`;
+    const email = realMxTestEmail("dup");
 
     const first = await post("/api/team/invite", accessToken, { email, role: "staff" });
-    expect(first.json.ok).toBe(true);
+    expect(first.json.ok, JSON.stringify(first.json)).toBe(true);
 
     const second = await post("/api/team/invite", accessToken, { email, role: "sales" });
     expect(second.json.ok).toBe(false);
     expect(second.json.error.code).toBe("duplicate");
+
+    const [row] = await sql`select id from auth.users where email = ${email}`;
+    if (row) invitedUserId = row.id as string; // dọn user thật do inviteUserByEmail tạo
   });
 
   it("accept khi không có lời mời nào -> not_found", async () => {
-    invitee = await createBareUser();
-    const { accessToken } = await invitee.signIn();
+    const bare = await createBareUser();
+    const { accessToken } = await bare.signIn();
     const res = await post("/api/team/accept", accessToken, {});
     expect(res.json.ok).toBe(false);
     expect(res.json.error.code).toBe("not_found");
+    await bare.cleanup();
   });
 });
 

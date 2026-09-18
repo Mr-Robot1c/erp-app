@@ -5,7 +5,7 @@ import type { Role } from "@erp/core";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const PASSWORD = "Test@12345";
+export const PASSWORD = "Test@12345";
 
 // idle_timeout: nhiều file test dùng CHUNG client này (fileParallelism:false, cùng worker) — không file nào
 // được gọi sql.end() (file khác đang cần), nên để pool TỰ đóng khi rảnh thay vì đóng tay (tránh treo tiến
@@ -241,6 +241,14 @@ export async function createIdempotencyKeyFixture(tenantId: string, key: string)
   await sql`
     insert into idempotency_keys (tenant_id, key, endpoint, response)
     values (${tenantId}, ${key}, 'test:fixture', '{}'::jsonb)`;
+}
+
+export async function createInviteFixture(tenantId: string, email: string, role: string) {
+  const [row] = await sql`
+    insert into invites (tenant_id, email, role)
+    values (${tenantId}, ${email}, ${role})
+    returning id`;
+  return row.id as string;
 }
 
 /** Đếm bảng có cột tenant_id trong information_schema — dùng để tự phát hiện bảng mới chưa được

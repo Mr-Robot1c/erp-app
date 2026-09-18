@@ -12,6 +12,7 @@ import {
   createDocHistoryFixture,
   createDocSequenceFixture,
   createIdempotencyKeyFixture,
+  createInviteFixture,
   listTenantScopedTables,
   apiUrl,
   type TestTenant,
@@ -27,6 +28,7 @@ import {
  * Lô 1.1: `industry_templates` KHÔNG có cột tenant_id (bảng dùng chung mọi tenant, policy select
  * using(true) cố ý public để trang đăng ký đọc được trước khi có membership) — không bị auto-detect
  * bên dưới quét tới (chỉ quét cột tenant_id) nên không cần thêm vào COVERED_TABLES.
+ * Lô 1.2: thêm `invites` (có SELECT policy theo tenant_id, như các bảng thường).
  */
 
 // Bảng CÓ policy SELECT cho client — dùng phép kiểm "thấy dòng mình, không thấy dòng người khác".
@@ -41,6 +43,7 @@ const READ_TABLES = [
   "documents",
   "document_lines",
   "doc_status_history",
+  "invites",
 ] as const;
 
 // Bảng RLS bật nhưng KHÔNG policy nào (kể cả SELECT) — client luôn thấy 0 dòng, dù là tenant nào.
@@ -159,6 +162,13 @@ const WRITE_CHECKS: WriteCheck[] = [
     updateColumn: "endpoint",
     updateValue: "hacked",
   },
+  {
+    table: "invites",
+    insertPayload: (b, uniq) => ({ tenant_id: b.tenantId, email: `hack_${uniq}@test.local`, role: "staff" }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.inviteB }],
+    updateColumn: "role",
+    updateValue: "admin",
+  },
 ];
 
 describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
@@ -183,6 +193,7 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     await createDocHistoryFixture(a.tenantId, docIdA);
     await createDocSequenceFixture(a.tenantId, "QUOTE");
     await createIdempotencyKeyFixture(a.tenantId, "seed-a");
+    await createInviteFixture(a.tenantId, "seed-a@test.local", "staff");
 
     fixtureIdsB.partnerB = await createPartner(b.tenantId, "PB0");
     fixtureIdsB.itemB = await createItem(b.tenantId, "IB0");
@@ -197,6 +208,7 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     fixtureIdsB.docSeqTypeB = "QUOTE";
     fixtureIdsB.idempotencyKeyB = "seed-b";
     await createIdempotencyKeyFixture(b.tenantId, fixtureIdsB.idempotencyKeyB);
+    fixtureIdsB.inviteB = await createInviteFixture(b.tenantId, "seed-b@test.local", "staff");
   });
 
   afterAll(async () => {
