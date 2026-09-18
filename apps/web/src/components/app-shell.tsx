@@ -21,7 +21,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "LÀM VIỆC",
     items: [
       { view: "dash", label: "Tổng quan", href: "/app", built: true },
-      { view: "tasks", label: "Việc cần làm", href: "/app/tasks", built: false, note: "lô 1.3" },
+      { view: "tasks", label: "Việc cần làm", href: "/app/tasks", built: true },
     ],
   },
   {
