@@ -33,3 +33,18 @@ describe("buildChain (EXP)", () => {
     expect(() => buildChain("PO", 1000, SETTINGS, "staff")).toThrow();
   });
 });
+
+import { buildPoChain } from "../src/index";
+
+describe("buildPoChain (AC-20)", () => {
+  const S = { poThreshold: 20_000_000 };
+  it("trên ngưỡng -> 2 cấp; dưới/bằng ngưỡng -> 1 cấp", () => {
+    expect(buildPoChain(25_000_000, S, "purchasing").chain).toEqual(["dept_lead", "chief_accountant"]);
+    expect(buildPoChain(20_000_000, S, "purchasing").chain).toEqual(["dept_lead"]);
+  });
+  it("bỏ cấp tự duyệt; chuỗi rỗng thì nâng lên kế toán trưởng", () => {
+    expect(buildPoChain(25_000_000, S, "dept_lead").chain).toEqual(["chief_accountant"]);
+    expect(buildPoChain(5_000_000, S, "dept_lead").chain).toEqual(["chief_accountant"]);
+    expect(buildPoChain(5_000_000, S, "chief_accountant").chain).toEqual(["dept_lead"]);
+  });
+});
