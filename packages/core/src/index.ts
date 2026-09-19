@@ -5,3 +5,4 @@ export * from "./docs";
 export * from "./onboarding";
 export * from "./perms";
 export * from "./approvals";
+export * from "./sales";

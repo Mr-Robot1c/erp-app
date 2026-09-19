@@ -102,3 +102,19 @@ export const settingsSchema = z.object({
   terms: z.number().int().positive("Phải lớn hơn 0"),
 });
 export type SettingsInput = z.infer<typeof settingsSchema>;
+
+export const quoteLineSchema = z.object({
+  itemId: z.string().uuid(),
+  qty: z.number().positive("Số lượng phải lớn hơn 0"),
+  price: z.number().int().nonnegative("Đơn giá không âm"),
+});
+
+export const quoteSchema = z.object({
+  partnerId: z.string().uuid(),
+  extId: z.string().uuid().nullable().optional(),
+  lines: z.array(quoteLineSchema).min(1, "Báo giá cần ít nhất 1 dòng"),
+});
+export type QuoteInput = z.infer<typeof quoteSchema>;
+
+export const quoteIdSchema = z.object({ quoteId: z.string().uuid() });
+export type QuoteIdInput = z.infer<typeof quoteIdSchema>;

@@ -61,6 +61,22 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
       post("/api/tenant/settings", token, { expThreshold: 10_000_000, poThreshold: 20_000_000, tolerancePct: 2, terms: 30 }),
     allowed: ["admin"],
   },
+  {
+    name: "POST /api/quotes",
+    call: (token) =>
+      post("/api/quotes", token, { partnerId: randomUUID(), lines: [{ itemId: randomUUID(), qty: 1, price: 1 }] }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "sales_lead", "sales"],
+  },
+  {
+    name: "POST /api/quotes/confirm",
+    call: (token) => post("/api/quotes/confirm", token, { quoteId: randomUUID() }),
+    allowed: ["admin", "sales_lead", "sales"],
+  },
+  {
+    name: "POST /api/quotes/expire-sweep",
+    call: (token) => post("/api/quotes/expire-sweep", token, {}),
+    allowed: ["admin"],
+  },
   // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
   // MỘT chứng từ cụ thể (chain[approvals.length] === vai gọi HOẶC admin), không phải 1 danh sách
   // vai tĩnh theo endpoint như các case trên — cùng lý do /api/team/accept cũng không có ở đây.
