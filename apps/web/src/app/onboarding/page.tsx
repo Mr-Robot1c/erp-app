@@ -9,7 +9,7 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("memberships").select("tenant_id").maybeSingle();
+  const { data: membership } = await supabase.from("memberships").select("tenant_id").eq("user_id", user.id).maybeSingle();
   if (membership) redirect("/app"); // đã có doanh nghiệp — khỏi đăng ký lại
 
   return <OnboardingForm email={user.email ?? ""} />;

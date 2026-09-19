@@ -16,6 +16,25 @@ export const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+/** Bảng con KHÔNG cascade theo tenant (FK tới items/warehouses/documents) — xoá theo thứ tự con -> cha
+ * trước khi xoá tenant, nếu không cascade xoá items trước document_lines làm vỡ FK. Thêm bảng mới vào
+ * đầu danh sách khi lô sau tạo bảng có FK kép tới items/documents/partners. Bảng chưa tồn tại thì bỏ qua. */
+const PURGE_ORDER = [
+  "journal_lines", "journal_entries", "receipt_allocations", "bank_txns", "receivables", "partner_advances",
+  "reservations", "stock_moves", "tasks", "documents", // documents cascade xuống lines+history (xoá lines riêng bị trigger frozen chặn)
+];
+
+export async function purgeTenant(tenantId: string) {
+  await sql.begin(async (t) => {
+    await t`set local app.purge = 'on'`;
+    for (const table of PURGE_ORDER) {
+      const [{ ok }] = await t`select to_regclass(${"public." + table}) is not null as ok`;
+      if (ok) await t.unsafe(`delete from ${table} where tenant_id = $1`, [tenantId]);
+    }
+    await t`delete from tenants where id = ${tenantId}`;
+  });
+}
+
 export type TestTenant = {
   tenantId: string;
   userId: string;
@@ -64,10 +83,7 @@ export async function createTestTenant(opts: { role?: Role } = {}): Promise<Test
     async cleanup() {
       // Xoá tenant cascade xuống documents — nếu có chứng từ đã confirm, trg_doc_immutable
       // chặn DELETE trừ khi bật van `app.purge` (xem supabase/migrations/0003_documents.sql).
-      await sql.begin(async (t) => {
-        await t`set local app.purge = 'on'`;
-        await t`delete from tenants where id = ${tenantId}`;
-      });
+      await purgeTenant(tenantId);
       await admin.auth.admin.deleteUser(userId);
     },
   };
@@ -149,28 +165,36 @@ export async function createBareUser(): Promise<BareUser> {
       // Test có thể đã tự đăng ký tạo tenant — xoá cả tenant đó (van purge) nếu có, rồi xoá user.
       const [m] = await sql`select tenant_id from memberships where user_id = ${userId}`;
       if (m) {
-        await sql.begin(async (t) => {
-          await t`set local app.purge = 'on'`;
-          await t`delete from tenants where id = ${m.tenant_id}`;
-        });
+        await purgeTenant(m.tenant_id as string);
       }
       await admin.auth.admin.deleteUser(userId);
     },
   };
 }
 
-export async function createPartner(tenantId: string, code: string) {
+export async function createPartner(
+  tenantId: string,
+  code: string,
+  opts: { kind?: string; creditLimit?: number } = {},
+) {
   const [row] = await sql`
-    insert into partners (tenant_id, code, name, kind)
-    values (${tenantId}, ${code}, ${"Đối tác " + code}, 'customer')
+    insert into partners (tenant_id, code, name, kind, credit_limit)
+    values (${tenantId}, ${code}, ${"Đối tác " + code}, ${opts.kind ?? "customer"}, ${opts.creditLimit ?? 0})
     returning id`;
   return row.id as string;
 }
 
-export async function createItem(tenantId: string, code: string) {
+export async function createItem(
+  tenantId: string,
+  code: string,
+  opts: { price?: number; cost?: number; kind?: string; tracking?: string } = {},
+) {
   const [row] = await sql`
-    insert into items (tenant_id, code, name, kind)
-    values (${tenantId}, ${code}, ${"Mặt hàng " + code}, 'goods')
+    insert into items (tenant_id, code, name, kind, price, cost, tracking)
+    values (
+      ${tenantId}, ${code}, ${"Mặt hàng " + code}, ${opts.kind ?? "goods"},
+      ${opts.price ?? 0}, ${opts.cost ?? 0}, ${opts.tracking ?? "none"}
+    )
     returning id`;
   return row.id as string;
 }

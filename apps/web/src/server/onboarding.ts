@@ -42,7 +42,7 @@ export async function registerTenant(
       insert into items (tenant_id, code, name, kind, uom, price, cost, bom, is_sample)
       values (
         ${tenant.id}, ${it.code}, ${it.name}, ${it.kind}, ${it.uom}, ${it.price}, ${it.cost},
-        ${it.bom ? JSON.stringify(it.bom) : null}::jsonb, ${it.isSample}
+        ${it.bom ? s.json(it.bom as never) : null}, ${it.isSample}
       )`;
   }
   for (const p of seed.partners) {

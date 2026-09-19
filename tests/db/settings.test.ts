@@ -48,6 +48,12 @@ describe("AC-05 — đổi ngưỡng duyệt không đổi chuỗi đang đi", (
     });
     expect(changed.json.ok, JSON.stringify(changed.json)).toBe(true);
 
+    // Hồi quy jsonb (lô 2.1): settings vẫn là object, ngưỡng mới ghi đúng, key accounting còn nguyên.
+    const [t] = await sql`select jsonb_typeof(settings) as ty, settings->>'expThreshold' as thr, settings->'accounting'->>'regime' as reg from tenants where id = ${tenant.tenantId}`;
+    expect(t.ty).toBe("object");
+    expect(t.thr).toBe("20000000");
+    expect(t.reg).toBe("TT133");
+
     // EXP cũ: chain KHÔNG đổi (đã snapshot vào meta lúc tạo).
     expect(await chainOf(oldDocId)).toEqual(["dept_lead", "accountant", "director"]);
 

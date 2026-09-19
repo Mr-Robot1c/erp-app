@@ -30,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let { data: membership } = await supabase
     .from("memberships")
     .select("tenant_id, role, display_name")
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (!membership && user.email) {
@@ -42,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ({ data: membership } = await supabase
         .from("memberships")
         .select("tenant_id, role, display_name")
+        .eq("user_id", user.id)
         .maybeSingle());
     }
   }

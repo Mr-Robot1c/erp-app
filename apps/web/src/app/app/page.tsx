@@ -11,7 +11,7 @@ export default async function AppHome() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("memberships").select("role, display_name").maybeSingle();
+  const { data: membership } = await supabase.from("memberships").select("role, display_name").eq("user_id", user.id).maybeSingle();
   if (!membership) redirect("/onboarding");
 
   const { data: tenant } = await supabase.from("tenants").select("name").maybeSingle();

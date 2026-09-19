@@ -55,7 +55,7 @@ export async function withIdempotency<T>(
   }
 
   const result = await fn();
-  await s`update idempotency_keys set response = ${JSON.stringify(result)}::jsonb where tenant_id = ${tenantId} and key = ${key}`;
+  await s`update idempotency_keys set response = ${s.json(result as never)} where tenant_id = ${tenantId} and key = ${key}`;
   return result;
 }
 

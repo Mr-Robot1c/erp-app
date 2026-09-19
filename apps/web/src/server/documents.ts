@@ -21,7 +21,7 @@ export async function createDocument(s: TransactionSql, m: Member, input: Create
     insert into documents (tenant_id, doc_type, doc_no, doc_date, partner_id, ext_id, meta, created_by, created_by_name)
     values (
       ${m.tenantId}, ${input.docType}, ${docNo}, ${date},
-      ${input.partnerId ?? null}, ${input.extId ?? null}, ${JSON.stringify(meta)}::jsonb,
+      ${input.partnerId ?? null}, ${input.extId ?? null}, ${s.json(meta as never)},
       ${m.userId}, ${m.displayName}
     )
     returning *`;

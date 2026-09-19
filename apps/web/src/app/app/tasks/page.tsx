@@ -10,7 +10,7 @@ export default async function TasksPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("memberships").select("role").maybeSingle();
+  const { data: membership } = await supabase.from("memberships").select("role").eq("user_id", user.id).maybeSingle();
   if (!membership) redirect("/onboarding");
 
   const { data: tasks } = await supabase

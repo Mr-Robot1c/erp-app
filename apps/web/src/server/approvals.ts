@@ -1,8 +1,10 @@
 import type { TransactionSql } from "postgres";
-import { AppError, buildChain, type ApprovalEntry, type ExpenseInput, type Role } from "@erp/core";
+import { AppError, approvalTaskText, buildChain, type ApprovalEntry, type DocType, type ExpenseInput, type Role } from "@erp/core";
 import type { Member } from "./auth";
 import { audit } from "./db";
 import { createDocument, setStatus } from "./documents";
+import { afterConfirm } from "./hooks";
+import { asObj } from "./json";
 
 type ExpenseMeta = { purpose: string; chain: Role[]; approvals: ApprovalEntry[] };
 
@@ -62,7 +64,7 @@ export async function decideApproval(
 
   // Cột jsonb qua đường `select ... for update` này không tự parse thành object (cùng gặp ở
   // idempotency_keys.response, server/api.ts) -> parse tường minh trước khi đọc field.
-  const meta = (typeof doc.meta === "string" ? JSON.parse(doc.meta) : doc.meta) as ExpenseMeta;
+  const meta = asObj<ExpenseMeta>(doc.meta);
   const nextRole = meta.chain[meta.approvals.length];
   if (m.role !== "admin" && m.role !== nextRole) {
     throw new AppError("forbidden", "Chưa tới lượt duyệt của vai này");
@@ -82,7 +84,7 @@ export async function decideApproval(
     { byUserId: m.userId, byName: m.displayName, role: m.role, at: new Date().toISOString() },
   ];
   const newMeta = { ...meta, approvals };
-  await s`update documents set meta = ${JSON.stringify(newMeta)}::jsonb where id = ${docId} and tenant_id = ${m.tenantId}`;
+  await s`update documents set meta = ${s.json(newMeta as never)} where id = ${docId} and tenant_id = ${m.tenantId}`;
   await audit(
     s,
     m.tenantId,
@@ -96,10 +98,12 @@ export async function decideApproval(
     const next = meta.chain[approvals.length];
     await s`
       insert into tasks (tenant_id, role, text, document_id)
-      values (${m.tenantId}, ${next}, ${"Duyệt đề xuất chi " + (doc.doc_no as string)}, ${docId})`;
+      values (${m.tenantId}, ${next}, ${approvalTaskText(doc.doc_type as DocType, doc.doc_no as string)}, ${docId})`;
     const [refreshed] = await s`select * from documents where id = ${docId} and tenant_id = ${m.tenantId}`;
     return refreshed;
   }
 
-  return setStatus(s, m, docId, "confirmed", "Duyệt đủ chuỗi");
+  const confirmed = await setStatus(s, m, docId, "confirmed", "Duyệt đủ chuỗi");
+  await afterConfirm(s, m, confirmed);
+  return confirmed;
 }

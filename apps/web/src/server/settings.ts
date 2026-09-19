@@ -9,7 +9,7 @@ import { audit } from "./db";
 export async function updateSettings(s: TransactionSql, m: Member, input: SettingsInput) {
   const [updated] = await s`
     update tenants
-    set settings = settings || ${JSON.stringify(input)}::jsonb
+    set settings = settings || ${s.json(input as never)}
     where id = ${m.tenantId}
     returning settings`;
 

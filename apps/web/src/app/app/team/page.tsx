@@ -9,7 +9,7 @@ export default async function TeamPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase.from("memberships").select("tenant_id, role").maybeSingle();
+  const { data: membership } = await supabase.from("memberships").select("tenant_id, role").eq("user_id", user.id).maybeSingle();
   if (!membership) redirect("/onboarding");
   if (membership.role !== "admin") redirect("/app"); // chỉ admin thấy màn này
 
