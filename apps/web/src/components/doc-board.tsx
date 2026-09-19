@@ -135,7 +135,7 @@ export function DocBoard({
         ))}
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--sf)]">
+      <div className="mt-3 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="doc-table">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
             <tr>
@@ -598,7 +598,7 @@ function DeliverForm({
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-[var(--line)] p-3" id="deliver-form">
+    <div className="mt-2 rounded-[var(--r)] border border-[var(--line)] p-3" id="deliver-form">
       <table className="w-full text-sm">
         <tbody>
           {rows.map((l) => {
@@ -813,7 +813,7 @@ function ReceiveForm({
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-[var(--line)] p-3" id="receive-form">
+    <div className="mt-2 rounded-[var(--r)] border border-[var(--line)] p-3" id="receive-form">
       <table className="w-full text-sm">
         <tbody>
           {rows.map((l) => {

@@ -89,7 +89,7 @@ export function MasterBoard({
             type="button"
             data-tab={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-md border px-3 py-1.5 text-sm ${tab === t.key ? "border-[var(--pri)] bg-[var(--pri)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`}
+            className={`rounded-[var(--r)] border px-3 py-1.5 text-sm ${tab === t.key ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`}
           >
             {t.label} ({t.n})
           </button>
@@ -102,7 +102,7 @@ export function MasterBoard({
         </p>
       )}
 
-      <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--sf)]">
+      <div className="mt-3 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
             {tab === "partners" && (

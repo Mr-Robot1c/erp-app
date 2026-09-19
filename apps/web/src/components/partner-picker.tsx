@@ -44,7 +44,7 @@ export function PartnerPicker({
         onBlur={() => setTimeout(() => setOpen(false), 120)}
       />
       {open && (
-        <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-[var(--line)] bg-[var(--sf)] shadow-md">
+        <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] shadow-md">
           {matches.length === 0 && <li className="px-3 py-2 text-sm text-[var(--ink2)]">Không tìm thấy</li>}
           {matches.map((p) => (
             <li key={p.id}>

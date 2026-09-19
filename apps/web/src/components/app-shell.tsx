@@ -70,10 +70,10 @@ export function AppShell({
     <div
       className={`${fontClassName} grid min-h-screen grid-cols-[220px_1fr] bg-[var(--bg)] text-[var(--ink)] max-[760px]:grid-cols-1`}
     >
-      <aside className="flex flex-col gap-0.5 border-r border-[var(--line)] bg-[var(--sf)] p-2.5 max-[760px]:flex-row max-[760px]:flex-wrap max-[760px]:border-r-0 max-[760px]:border-b max-[760px]:border-[var(--line)]">
+      <aside className="flex flex-col gap-0.5 bg-[var(--side)] p-2.5 text-[var(--side-ink)] max-[760px]:flex-row max-[760px]:flex-wrap">
         <div className="px-2.5 pt-1.5 pb-3 text-[15px] font-bold max-[760px]:w-full">
           ERP
-          <small className="mt-0.5 block text-[11px] font-normal text-[var(--ink2)]">{tenantName}</small>
+          <small className="mt-0.5 block text-[11px] font-normal opacity-70">{tenantName}</small>
         </div>
         {NAV_GROUPS.map((group) => {
           const items = group.items.filter((item) =>
@@ -82,7 +82,7 @@ export function AppShell({
           if (!items.length) return null;
           return (
             <div key={group.label} className="mt-1.5 first:mt-0">
-              <div className="px-2.5 pb-1 text-[10.5px] font-semibold tracking-wide text-[var(--ink2)]">
+              <div className="px-2.5 pb-1 text-[10.5px] font-semibold tracking-wide uppercase opacity-60">
                 {group.label}
               </div>
               {items.map((item) =>
@@ -90,10 +90,10 @@ export function AppShell({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center justify-between rounded-md px-2.5 py-2 text-[13.5px] ${
+                    className={`flex items-center justify-between rounded-[var(--r)] border-l-[3px] px-2.5 py-2 text-[13.5px] ${
                       pathname === item.href
-                        ? "bg-[var(--accs)] font-semibold text-[var(--acc)]"
-                        : "text-[var(--ink)] hover:bg-[var(--lane)]"
+                        ? "border-[var(--acc)] bg-[var(--side-on)] font-semibold text-white"
+                        : "border-transparent hover:bg-[var(--side-on)]"
                     }`}
                   >
                     {item.label}
@@ -101,7 +101,7 @@ export function AppShell({
                 ) : (
                   <div
                     key={item.href}
-                    className="flex items-center justify-between rounded-md px-2.5 py-2 text-[13.5px] text-[var(--ink2)] opacity-60"
+                    className="flex items-center justify-between rounded-[var(--r)] px-2.5 py-2 text-[13.5px] opacity-40"
                   >
                     {item.label}
                     {item.note && <span className="text-[10.5px]">{item.note}</span>}
@@ -113,7 +113,7 @@ export function AppShell({
         })}
       </aside>
       <div className="flex flex-col">
-        <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-[var(--line)] bg-[var(--bg)] px-5 py-3">
+        <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-[var(--line)] bg-[var(--sf)] px-5 py-3">
           <span id="tenant-title" className="font-semibold">
             {tenantName}
           </span>

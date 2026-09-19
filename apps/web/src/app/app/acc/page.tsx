@@ -36,7 +36,7 @@ export default async function AccPage() {
       <h1 className="text-lg font-semibold">Kế toán</h1>
 
       <h2 className="mt-4 text-sm font-semibold">Khoản phải thu còn mở</h2>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--sf)]">
+      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="ar-table">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
             <tr>
@@ -67,7 +67,7 @@ export default async function AccPage() {
       </div>
 
       <h2 className="mt-5 text-sm font-semibold">Tiền khách ứng trước</h2>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--sf)]">
+      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="adv-table">
           <tbody>
             {(adv ?? []).length === 0 && (
@@ -86,7 +86,7 @@ export default async function AccPage() {
       </div>
 
       <h2 className="mt-5 text-sm font-semibold">Chờ khớp tay</h2>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--sf)]">
+      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="unmatched-table">
           <tbody>
             {(unmatched ?? []).length === 0 && (

@@ -53,7 +53,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       <h1 className="text-lg font-semibold">Cài đặt doanh nghiệp</h1>
 
       <form
-        className="mt-4 flex flex-col gap-3 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4"
+        className="mt-4 flex flex-col gap-3 rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-4"
         onSubmit={(e) => {
           e.preventDefault();
           void submit();
@@ -68,7 +68,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             required
             value={expThreshold}
             onChange={(e) => setExpThreshold(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -80,7 +80,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             required
             value={poThreshold}
             onChange={(e) => setPoThreshold(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -94,7 +94,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             required
             value={tolerancePct}
             onChange={(e) => setTolerancePct(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -106,7 +106,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             required
             value={terms}
             onChange={(e) => setTerms(e.target.value)}
-            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
           />
         </label>
 
@@ -117,13 +117,13 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           id="btn-save-settings"
           type="submit"
           disabled={busy}
-          className="self-start rounded-md bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="self-start rounded-[var(--r)] bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
         >
           Lưu
         </button>
       </form>
 
-      <div className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4 text-sm">
+      <div className="mt-4 rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-4 text-sm">
         <div className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">
           Chế độ kế toán
         </div>

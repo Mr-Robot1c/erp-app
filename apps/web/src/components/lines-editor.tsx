@@ -52,7 +52,7 @@ export function LinesEditor({
           + Thêm dòng
         </button>
       </div>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-[var(--line)]">
+      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)]">
         <table className="w-full text-sm">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
             <tr>
@@ -105,7 +105,7 @@ export function LinesEditor({
                     <button
                       type="button"
                       aria-label="Xoá dòng"
-                      className="rounded-md px-2 py-1 text-[var(--bad)] hover:bg-[var(--bads)]"
+                      className="rounded-[var(--r)] px-2 py-1 text-[var(--bad)] hover:bg-[var(--bads)]"
                       onClick={() => remove(i)}
                     >
                       ×

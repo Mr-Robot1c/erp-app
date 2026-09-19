@@ -74,7 +74,7 @@ export function TasksBoard({ tasks, myRole }: { tasks: Task[]; myRole: Role }) {
         {tasks.map((t) => {
           const canDecide = myRole === "admin" || myRole === t.role;
           return (
-            <li key={t.id} className="rounded-lg border border-[var(--line)] bg-[var(--sf)] p-3" data-task-id={t.id}>
+            <li key={t.id} className="rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-3" data-task-id={t.id}>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <span className="pill pending mr-2">{ROLE_LABEL[t.role] ?? t.role}</span>
@@ -83,14 +83,14 @@ export function TasksBoard({ tasks, myRole }: { tasks: Task[]; myRole: Role }) {
                 {canDecide && (
                   <div className="flex shrink-0 gap-2">
                     <button
-                      className="rounded-md bg-[var(--ok)] px-2.5 py-1 text-sm text-white disabled:opacity-50"
+                      className="rounded-[var(--r)] bg-[var(--ok)] px-2.5 py-1 text-sm text-white disabled:opacity-50"
                       disabled={busyId === t.id}
                       onClick={() => void decide(t, "approve")}
                     >
                       Duyệt
                     </button>
                     <button
-                      className="rounded-md border border-[var(--line)] px-2.5 py-1 text-sm text-[var(--bad)] disabled:opacity-50"
+                      className="rounded-[var(--r)] border border-[var(--line)] px-2.5 py-1 text-sm text-[var(--bad)] disabled:opacity-50"
                       disabled={busyId === t.id}
                       onClick={() => setRejectingId(rejectingId === t.id ? null : t.id)}
                     >
@@ -106,10 +106,10 @@ export function TasksBoard({ tasks, myRole }: { tasks: Task[]; myRole: Role }) {
                     placeholder="Lý do từ chối"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="flex-1 rounded-md border border-[var(--line)] bg-[var(--sf)] px-2 py-1 text-sm"
+                    className="flex-1 rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-2 py-1 text-sm"
                   />
                   <button
-                    className="rounded-md bg-[var(--bad)] px-2.5 py-1 text-sm text-white disabled:opacity-50"
+                    className="rounded-[var(--r)] bg-[var(--bad)] px-2.5 py-1 text-sm text-white disabled:opacity-50"
                     disabled={busyId === t.id}
                     onClick={() => void decide(t, "reject")}
                   >

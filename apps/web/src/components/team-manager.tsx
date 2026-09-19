@@ -79,7 +79,7 @@ export function TeamManager({
       <h1 className="text-lg font-semibold">Thành viên & vai</h1>
       {msg && <p className="mt-2 text-sm text-[var(--bad)]">{msg}</p>}
 
-      <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4" id="team-members">
+      <section className="mt-4 rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-4" id="team-members">
         <h2 className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">
           Thành viên ({members.length})
         </h2>
@@ -92,7 +92,7 @@ export function TeamManager({
                   <select
                     value={mm.role}
                     onChange={(e) => void changeRole(mm.user_id, e.target.value as Role)}
-                    className="rounded-md border border-[var(--line)] bg-[var(--sf)] px-2 py-1"
+                    className="rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-2 py-1"
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
@@ -117,7 +117,7 @@ export function TeamManager({
         </table>
       </section>
 
-      <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4" id="team-invites">
+      <section className="mt-4 rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-4" id="team-invites">
         <h2 className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">
           Lời mời đang chờ ({invites.length})
         </h2>
@@ -130,7 +130,7 @@ export function TeamManager({
         </ul>
       </section>
 
-      <section className="mt-4 rounded-lg border border-[var(--line)] bg-[var(--sf)] p-4">
+      <section className="mt-4 rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-4">
         <h2 className="text-[11.5px] font-semibold tracking-wide text-[var(--ink2)] uppercase">Mời người mới</h2>
         <form
           className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end"
@@ -147,7 +147,7 @@ export function TeamManager({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
+              className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
             />
           </label>
           <label className="text-sm">
@@ -156,7 +156,7 @@ export function TeamManager({
               id="invite-role"
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
+              className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-2"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -169,7 +169,7 @@ export function TeamManager({
             id="btn-invite"
             type="submit"
             disabled={busy}
-            className="rounded-md bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
+            className="rounded-[var(--r)] bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
           >
             Gửi lời mời
           </button>

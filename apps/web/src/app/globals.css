@@ -15,30 +15,34 @@
 /* Giao diện thiết kế cho nền sáng; máy bật dark mode từng làm chữ sáng trên thẻ trắng
    (không đọc được) — khoá màu cố định, hỗ trợ dark mode thật để "Để sau". */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Palette chuẩn giao diện (playbook/03-chuan-giao-dien.md mục G) — chép nguyên bộ biến CSS
-   của demo/index.html. Dùng cho khung /app/* trở đi; nền sáng cố định, dark mode "Để sau". */
+/* Bản sắc thị giác (playbook/03-chuan-giao-dien.md mục H) — MỘT chỗ đặt token; component chỉ dùng biến, cấm hex rải rác.
+   Nền sáng cố định, dark mode "Để sau". */
 :root {
-  --bg: #f3f4f1;
+  --bg: #f6f4ef;
   --sf: #ffffff;
-  --ink: #1b2024;
-  --ink2: #5b6470;
-  --line: #dad9d2;
-  --acc: #2f5d8a;
-  --accs: #e4edf5;
+  --ink: #1e2a26;
+  --ink2: #66736d;
+  --line: #dfdcd3;
+  --acc: #0e6b5c;
+  --accs: #e2f0ec;
+  --side: #132a24;
+  --side-ink: #d9e4df;
+  --side-on: #1e4038;
   --ok: #2e6b4f;
   --oks: #e3f0e9;
-  --warn: #b5641f;
-  --warns: #fbebdd;
+  --warn: #b45309;
+  --warns: #fbeedd;
   --bad: #a83a2e;
-  --bads: #f8e3e0;
+  --bads: #f8e4e1;
   --ext: #7a5a1e;
   --exts: #f5ecd9;
-  --lane: #f8f8f5;
+  --lane: #f8f7f3;
+  --r: 6px;
 }
 
 .pill {

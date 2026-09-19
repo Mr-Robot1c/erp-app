@@ -27,7 +27,7 @@ export default async function StockPage() {
   return (
     <div>
       <h1 className="text-lg font-semibold">Kho</h1>
-      <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--sf)]">
+      <div className="mt-3 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="stock-table">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
             <tr>

@@ -163,7 +163,7 @@ export function DocDetail({
         ))}
       </dl>
 
-      <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)]">
+      <div className="mt-3 overflow-x-auto rounded-[var(--r)] border border-[var(--line)]">
         <table className="w-full text-sm">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
             <tr>

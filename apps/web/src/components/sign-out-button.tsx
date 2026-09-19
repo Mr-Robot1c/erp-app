@@ -7,7 +7,7 @@ export function SignOutButton() {
   return (
     <button
       id="btn-signout"
-      className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
+      className="rounded-[var(--r)] border border-zinc-300 px-3 py-2 text-sm"
       onClick={async () => {
         await supabaseBrowser().auth.signOut();
         router.push("/login");

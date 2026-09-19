@@ -42,9 +42,9 @@ export default async function AppHome() {
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-lg border border-[var(--line)] bg-[var(--sf)] p-3">
-            <div className="text-[11.5px] tracking-wide text-[var(--ink2)] uppercase">{c.label}</div>
-            <div className="mt-0.5 text-[19px] font-semibold tabular-nums">{c.value}</div>
+          <div key={c.label} className="rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-3">
+            <div className="text-[11px] tracking-wide text-[var(--ink2)] uppercase">{c.label}</div>
+            <div className="mt-0.5 text-[22px] font-semibold tabular-nums">{c.value}</div>
             {c.note && <div className="text-[11.5px] text-[var(--ink2)]">{c.note}</div>}
           </div>
         ))}

@@ -44,7 +44,7 @@ export function OnboardingForm({ email }: { email: string }) {
   }
 
   return (
-    <main className="mx-auto mt-16 w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <main className="mx-auto mt-16 w-full max-w-md rounded-[var(--r)] border border-zinc-200 bg-white p-6 shadow-sm">
       <h1 className="text-xl font-bold">Đăng ký doanh nghiệp</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Bước 1/1 — tạo không gian riêng cho doanh nghiệp của bạn. Tài khoản: <b id="user-email">{email}</b>
@@ -63,7 +63,7 @@ export function OnboardingForm({ email }: { email: string }) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-zinc-300 px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -73,7 +73,7 @@ export function OnboardingForm({ email }: { email: string }) {
             required
             value={taxCode}
             onChange={(e) => setTaxCode(e.target.value)}
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-zinc-300 px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -82,7 +82,7 @@ export function OnboardingForm({ email }: { email: string }) {
             id="tenant-industry"
             value={industry}
             onChange={(e) => setIndustry(e.target.value as typeof industry)}
-            className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-zinc-300 px-3 py-2"
           >
             {INDUSTRIES.map((t) => (
               <option key={t.code} value={t.code}>
@@ -105,7 +105,7 @@ export function OnboardingForm({ email }: { email: string }) {
           id="btn-register"
           type="submit"
           disabled={busy}
-          className="rounded-md bg-blue-700 px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded-[var(--r)] bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
         >
           Hoàn tất đăng ký
         </button>
