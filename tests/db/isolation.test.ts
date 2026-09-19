@@ -35,6 +35,7 @@ import {
  * Lô 2.2 (migration 0009): thêm 8 bảng GĐ2 (stock_moves, reservations, receivables, receipt_allocations,
  * partner_advances, bank_txns, journal_entries, journal_lines) + 2 VIEW (v_on_hand, v_available —
  * security_invoker, quét y như bảng: B đọc qua view chỉ thấy dòng của B).
+ * Lô 3.3 (migration 0012): thêm payables, payment_allocations.
  */
 
 // Bảng CÓ policy SELECT cho client — dùng phép kiểm "thấy dòng mình, không thấy dòng người khác".
@@ -59,6 +60,8 @@ const READ_TABLES = [
   "bank_txns",
   "journal_entries",
   "journal_lines",
+  "payables",
+  "payment_allocations",
   "v_on_hand",
   "v_available",
 ] as const;
@@ -236,6 +239,20 @@ const WRITE_CHECKS: WriteCheck[] = [
     updateValue: "hacked",
   },
   {
+    table: "payables",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, partner_id: ids.g2PartnerB, amount: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.payableB }],
+    updateColumn: "paid",
+    updateValue: 999,
+  },
+  {
+    table: "payment_allocations",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, payment_id: ids.documentB, payable_id: ids.payableB, amount: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.payAllocB }],
+    updateColumn: "amount",
+    updateValue: 999,
+  },
+  {
     table: "journal_entries",
     insertPayload: (b) => ({ tenant_id: b.tenantId, entry_date: "2099-01-01" }),
     ownRowFilter: (_b, ids) => [{ column: "id", value: ids.entryB }],
@@ -300,6 +317,8 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     fixtureIdsB.reservationB = g2.reservationId;
     fixtureIdsB.receivableB = g2.receivableId;
     fixtureIdsB.allocB = g2.allocId;
+    fixtureIdsB.payableB = g2.payableId;
+    fixtureIdsB.payAllocB = g2.payAllocId;
     fixtureIdsB.bankRefB = g2.bankRef;
     fixtureIdsB.entryB = g2.entryId;
     fixtureIdsB.journalLineB = g2.journalLineId;

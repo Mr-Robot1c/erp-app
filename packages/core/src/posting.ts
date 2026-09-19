@@ -28,3 +28,20 @@ export const postGrn = (byAccount: Record<string, number>): PostingLine[] => {
   const total = Object.values(byAccount).reduce((a, b) => a + b, 0);
   return [...Object.entries(byAccount).map(([acc, v]): PostingLine => [acc, v, 0]), ["331", 0, total]];
 };
+
+/** Hoá đơn mua (VINV) — CHỈ ghi PHẦN CHÊNH giá hàng đã nhập (GRN đã ghi giá tạm) + thuế GTGT đầu vào + dịch vụ khớp 2 bên.
+ * KHÔNG ghi lại giá hàng (tránh Có 331 hai lần). Chênh dương: Nợ 156|152; âm: Có 156|152. Có 331 = thuế + dịch vụ + Σ chênh
+ * (nếu âm thì thành Nợ 331). Lô 3.3 — sơ đồ chốt trong playbook/gd3-mua-kho.md. */
+export const postVendorInvoice = (p: { adjByAccount: Record<string, number>; serviceNet: number; tax: number }): PostingLine[] => {
+  const lines: PostingLine[] = [];
+  let payable = p.serviceNet + p.tax;
+  for (const [acc, v] of Object.entries(p.adjByAccount)) {
+    if (v > 0) lines.push([acc, v, 0]);
+    else if (v < 0) lines.push([acc, 0, -v]);
+    payable += v;
+  }
+  if (p.serviceNet) lines.push(["642", p.serviceNet, 0]);
+  if (p.tax) lines.push(["133", p.tax, 0]);
+  lines.push(payable >= 0 ? ["331", 0, payable] : ["331", -payable, 0]);
+  return lines;
+};

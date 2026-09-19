@@ -20,7 +20,7 @@ export const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
  * trước khi xoá tenant, nếu không cascade xoá items trước document_lines làm vỡ FK. Thêm bảng mới vào
  * đầu danh sách khi lô sau tạo bảng có FK kép tới items/documents/partners. Bảng chưa tồn tại thì bỏ qua. */
 const PURGE_ORDER = [
-  "journal_lines", "journal_entries", "receipt_allocations", "bank_txns", "receivables", "partner_advances",
+  "payment_allocations", "payables", "journal_lines", "journal_entries", "receipt_allocations", "bank_txns", "receivables", "partner_advances",
   "reservations", "stock_moves", "tasks", "documents", // documents cascade xuống lines+history (xoá lines riêng bị trigger frozen chặn)
 ];
 
@@ -319,6 +319,12 @@ export async function createGd2Fixtures(tenantId: string, documentId: string, ta
     insert into receipt_allocations (tenant_id, receipt_id, receivable_id, amount)
     values (${tenantId}, ${documentId}, ${recv.id}, 100) returning id`;
   await sql`insert into partner_advances (tenant_id, partner_id, amount) values (${tenantId}, ${partnerId}, 50)`;
+  const [pay] = await sql`
+    insert into payables (tenant_id, document_id, partner_id, amount)
+    values (${tenantId}, ${documentId}, ${partnerId}, 2000) returning id`;
+  const [palloc] = await sql`
+    insert into payment_allocations (tenant_id, payment_id, payable_id, amount)
+    values (${tenantId}, ${documentId}, ${pay.id}, 200) returning id`;
   const bankRef = `seed-bank-${tag}`;
   await sql`insert into bank_txns (tenant_id, bank_ref, receipt_id) values (${tenantId}, ${bankRef}, ${documentId})`;
   const [entry] = await sql`
@@ -335,6 +341,6 @@ export async function createGd2Fixtures(tenantId: string, documentId: string, ta
   return {
     partnerId, itemId, warehouseId,
     stockMoveId: move.id as string, reservationId: resv.id as string, receivableId: recv.id as string,
-    allocId: alloc.id as string, bankRef, entryId: entry.id as string, journalLineId: String(lineId),
+    allocId: alloc.id as string, payableId: pay.id as string, payAllocId: palloc.id as string, bankRef, entryId: entry.id as string, journalLineId: String(lineId),
   };
 }

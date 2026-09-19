@@ -24,8 +24,13 @@ const TABS_BY_MODULE: Record<BoardModule, Tab[]> = {
     { key: "PR", label: "Yêu cầu mua" },
     { key: "PO", label: "Đơn mua" },
     { key: "GRN", label: "Phiếu nhập" },
+    { key: "VINV", label: "Hoá đơn mua" },
+    { key: "PAY", label: "Phiếu chi" },
   ],
 };
+
+/** Vai ghi hoá đơn nhà cung cấp: mua hàng (PERMS 'vinv') + kế toán giữ sổ phải trả. */
+const VINV_ROLES: Role[] = ["admin", "purchasing", "accountant", "chief_accountant"];
 
 const VI_ERR: Record<string, string> = {
   forbidden: "Bạn không có quyền làm việc này (hoặc chưa tới lượt của bạn).",
@@ -273,6 +278,14 @@ function extraInfo(d: DocRow): [string, ReactNode][] {
     if (d.meta.qc) out.push(["Kiểm hàng", d.meta.qcPassed ? "Đã đạt — ở kho chính" : "Chờ kiểm (kho QC)"]);
     if (d.meta.variance?.length) out.push(["Lệch so với đơn", d.meta.variance.map((v) => (v.diff > 0 ? "+" : "") + v.diff).join(", ")]);
   }
+  if (d.doc_type === "VINV") {
+    if (d.meta.poNo) out.push(["Theo đơn mua", String(d.meta.poNo)]);
+    if (d.meta.invoiceNo) out.push(["Số hoá đơn NCC", String(d.meta.invoiceNo)]);
+    if (d.meta.total) out.push(["Phải trả (gồm thuế)", formatMoney(Number(d.meta.total))]);
+    if (d.meta.due) out.push(["Hạn thanh toán", String(d.meta.due)]);
+    if (d.meta.cogsAdjustment) out.push(["Chênh giá vốn", formatMoney(Number(d.meta.cogsAdjustment))]);
+    if (d.meta.matchNote) out.push(["Lệch khi đối chiếu", String(d.meta.matchNote)]);
+  }
   if (d.doc_type === "RCPT") {
     out.push(["Số tiền", formatMoney(Number(d.meta.amount ?? 0))]);
     out.push(["Hình thức", d.meta.method === "cash" ? "Tiền mặt" : "Chuyển khoản"]);
@@ -368,6 +381,7 @@ function DocActions({
   const [poFromPr, setPoFromPr] = useState(false);
   const [supplierId, setSupplierId] = useState("");
   const [delivering, setDelivering] = useState(false);
+  const [invoicing, setInvoicing] = useState(false);
 
   async function run(url: string, body: unknown, key?: string) {
     setBusy(true);
@@ -421,6 +435,11 @@ function DocActions({
             Nhận hàng
           </button>
         )}
+        {isPo && (doc.status === "confirmed" || doc.status === "partial" || doc.status === "done") && VINV_ROLES.includes(role) && (
+          <button id="btn-vinv" className={btnGhost} disabled={busy} onClick={() => setInvoicing(!invoicing)}>
+            Ghi hoá đơn mua
+          </button>
+        )}
         {doc.doc_type === "GRN" && doc.meta.qc && !doc.meta.qcPassed && can(role, "grn") && (
           <button id="btn-pass-qc" className={btnPrimary} disabled={busy} onClick={() => void run("/api/purchase/pass-qc", { grnId: doc.id }, passKey)}>
             Đạt kiểm — chuyển kho chính
@@ -449,7 +468,7 @@ function DocActions({
         {myTurn && (
           <>
             <button id="btn-approve" className={btnPrimary} disabled={busy} onClick={() => void run("/api/approvals/decide", { docId: doc.id, decision: "approve" })}>
-              {isOrder ? "Duyệt công nợ" : isPo ? "Duyệt đơn mua" : "Duyệt giá"}
+              {isOrder ? "Duyệt công nợ" : isPo ? "Duyệt đơn mua" : doc.doc_type === "VINV" ? "Duyệt hoá đơn lệch" : "Duyệt giá"}
             </button>
             <button id="btn-reject" className={btnGhost} disabled={busy} onClick={() => setRejecting(!rejecting)}>
               Từ chối
@@ -513,6 +532,19 @@ function DocActions({
           items={items}
           onDone={(id) => {
             setReceiving(false);
+            reload();
+            if (id) openDoc(id);
+          }}
+        />
+      )}
+
+      {invoicing && (
+        <VendorInvoiceForm
+          doc={doc}
+          ctx={ctx}
+          items={items}
+          onDone={(id) => {
+            setInvoicing(false);
             reload();
             if (id) openDoc(id);
           }}
@@ -843,6 +875,78 @@ function ReceiveForm({
       <div className="mt-2 flex justify-end">
         <button id="btn-confirm-receive" className={btnPrimary} disabled={busy} onClick={() => void submit()}>
           Xác nhận nhận hàng
+        </button>
+      </div>
+      {err && <p className="mt-2 text-sm text-[var(--bad)]">{err}</p>}
+    </div>
+  );
+}
+
+/** Form ghi hoá đơn nhà cung cấp (lô 3.3): số hoá đơn + mỗi dòng còn chưa ghi (mặc định = đã nhận − đã ghi hoá đơn; dịch vụ = đặt − đã ghi)
+ * với giá theo hoá đơn (mặc định = giá đơn mua). Lệch quá dung sai → hoá đơn chờ kế toán trưởng duyệt. */
+function VendorInvoiceForm({
+  doc,
+  ctx,
+  items,
+  onDone,
+}: {
+  doc: DocRow;
+  ctx: { lines: LineRow[]; held: Record<number, number> };
+  items: LineItemOption[];
+  onDone: (id: string | null) => void;
+}) {
+  type Row = { qty: string; price: string };
+  const kindOf = (l: LineRow) => items.find((i) => i.id === l.item_id)?.kind ?? "goods";
+  const openQty = (l: LineRow) =>
+    (kindOf(l) === "service" ? Number(l.qty) : Number(l.meta?.received ?? 0)) - Number(l.meta?.invoiced ?? 0);
+  const rows = ctx.lines.filter((l) => openQty(l) > 0);
+  const [vals, setVals] = useState<Record<number, Row>>({});
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [key] = useState(newKey);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const rowOf = (l: LineRow): Row => vals[l.line_no] ?? { qty: String(openQty(l)), price: String(Number(l.price)) };
+  const set = (l: LineRow, p: Partial<Row>) => setVals({ ...vals, [l.line_no]: { ...rowOf(l), ...p } });
+
+  async function submit() {
+    if (!invoiceNo.trim()) return setErr("Nhập số hoá đơn của nhà cung cấp.");
+    const lines = rows
+      .map((l) => ({ lineNo: l.line_no, qty: Number(rowOf(l).qty), price: Math.round(Number(rowOf(l).price)) }))
+      .filter((l) => l.qty > 0);
+    if (!lines.length) return setErr("Chưa nhập số lượng trên hoá đơn.");
+    setBusy(true);
+    setErr("");
+    const res = await callApi("/api/purchase/vendor-invoice", { poId: doc.id, invoiceNo: invoiceNo.trim(), lines }, key);
+    setBusy(false);
+    if (!res.ok) return setErr(res.error.code === "duplicate" || res.error.code === "state_invalid" ? res.error.message : (VI_ERR[res.error.code] ?? res.error.message));
+    onDone((res.data.id as string) ?? null);
+  }
+
+  return (
+    <div className="mt-2 rounded-[var(--r)] border border-[var(--line)] p-3" id="vinv-form">
+      {rows.length === 0 && <p className="text-sm text-[var(--ink2)]">Không còn dòng nào chờ hoá đơn (hàng chưa nhận thì chưa ghi được hoá đơn).</p>}
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map((l) => {
+            const v = rowOf(l);
+            return (
+              <tr key={l.line_no}>
+                <td className="py-1 pr-2">{items.find((i) => i.id === l.item_id)?.name ?? "—"}</td>
+                <td className="w-24 py-1 pr-2">
+                  <input className={`${inputCls} vq`} type="number" min={0} step="any" value={v.qty} onChange={(e) => set(l, { qty: e.target.value })} />
+                </td>
+                <td className="w-36 py-1 pr-2">
+                  <input className={`${inputCls} vp`} type="number" min={0} value={v.price} onChange={(e) => set(l, { price: e.target.value })} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="mt-2 flex gap-2">
+        <input id="vinv-no" className={inputCls} placeholder="Số hoá đơn của nhà cung cấp" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
+        <button id="btn-confirm-vinv" className={btnPrimary} disabled={busy || rows.length === 0} onClick={() => void submit()}>
+          Ghi hoá đơn mua
         </button>
       </div>
       {err && <p className="mt-2 text-sm text-[var(--bad)]">{err}</p>}

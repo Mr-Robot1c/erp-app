@@ -105,5 +105,7 @@ export async function decideApproval(
 
   const confirmed = await setStatus(s, m, docId, "confirmed", "Duyệt đủ chuỗi");
   await afterConfirm(s, m, confirmed);
-  return confirmed;
+  // Hook có thể đẩy chứng từ đi tiếp (vd hoá đơn mua ghi sổ → done): trả về bản mới nhất.
+  const [latest] = await s`select * from documents where id = ${docId} and tenant_id = ${m.tenantId}`;
+  return latest ?? confirmed;
 }

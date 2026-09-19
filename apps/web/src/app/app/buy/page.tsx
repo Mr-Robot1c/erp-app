@@ -21,7 +21,7 @@ export default async function BuyPage() {
     supabase
       .from("documents")
       .select(DOC_COLUMNS)
-      .in("doc_type", ["PR", "PO", "GRN"])
+      .in("doc_type", ["PR", "PO", "GRN", "VINV", "PAY"])
       .order("created_at", { ascending: false })
       .limit(300),
   ]);

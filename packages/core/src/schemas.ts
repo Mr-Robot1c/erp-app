@@ -216,3 +216,21 @@ export const receiveSchema = z.object({
 export type ReceiveInput = z.infer<typeof receiveSchema>;
 
 export const passQcSchema = z.object({ grnId: z.string().uuid() });
+
+export const vendorInvoiceSchema = z.object({
+  poId: z.string().uuid(),
+  invoiceNo: z.string().trim().min(1, "Thiếu số hoá đơn nhà cung cấp"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+  lines: z
+    .array(
+      z.object({
+        lineNo: z.number().int().positive(),
+        qty: z.number().positive("Số lượng phải lớn hơn 0"),
+        price: z.number().int().nonnegative(),
+        /** Thuế suất ghi trên hoá đơn NCC; bỏ trống = theo dòng đơn mua. */
+        taxPct: z.number().min(0).max(100).optional(),
+      }),
+    )
+    .min(1, "Chưa có dòng hoá đơn"),
+});
+export type VendorInvoiceInput = z.infer<typeof vendorInvoiceSchema>;
