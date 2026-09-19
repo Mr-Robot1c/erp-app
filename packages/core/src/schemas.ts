@@ -160,3 +160,35 @@ export const receiptSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
 });
 export type ReceiptInput = z.infer<typeof receiptSchema>;
+
+export const purchaseOrderSchema = z
+  .object({
+    supplierId: z.string().uuid(),
+    fromPrId: z.string().uuid().optional(),
+    extId: z.string().uuid().nullable().optional(),
+    lines: z.array(quoteLineSchema).optional(),
+  })
+  .refine((v) => v.fromPrId || (v.lines && v.lines.length > 0), { message: "Đơn mua cần yêu cầu mua gốc hoặc ít nhất 1 dòng" });
+export type PurchaseOrderInput = z.infer<typeof purchaseOrderSchema>;
+
+export const poIdSchema = z.object({ poId: z.string().uuid() });
+
+export const receiveSchema = z.object({
+  poId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+  /** Đợt nhận CUỐI: nhà cung cấp không giao thêm nữa — dùng để kiểm lệch quá dung sai khi nhận thiếu (AC-21). */
+  final: z.boolean().optional(),
+  lines: z
+    .array(
+      z.object({
+        lineNo: z.number().int().positive(),
+        qty: z.number().positive("Số lượng phải lớn hơn 0"),
+        lots: z.array(z.object({ lotNo: z.string().min(1), qty: z.number().positive() })).optional(),
+        serials: z.array(z.string().min(1)).optional(),
+      }),
+    )
+    .min(1, "Chưa nhập số lượng nhận"),
+});
+export type ReceiveInput = z.infer<typeof receiveSchema>;
+
+export const passQcSchema = z.object({ grnId: z.string().uuid() });

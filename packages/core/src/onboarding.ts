@@ -72,7 +72,10 @@ export function buildTenantSeed(template: IndustryTemplate, withSample: boolean)
     isSample: true,
   }));
 
-  const warehouses: SeedWarehouse[] = [{ code: "K1", name: "Kho chính" }];
+  const warehouses: SeedWarehouse[] = [
+    { code: "K1", name: "Kho chính" },
+    { code: "QC", name: "Kho chờ kiểm" },
+  ];
   const accounts: SeedAccount[] = template.payload.accounts.map((a) => ({ code: a.code, name: a.name }));
 
   const extObjects: SeedExtObject[] = template.payload.extKey

@@ -110,6 +110,28 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
       post("/api/receipts", token, { partnerId: randomUUID(), amount: 1000, method: "cash" }, { "idempotency-key": randomUUID() }),
     allowed: ["admin", "accountant", "chief_accountant"],
   },
+  {
+    name: "POST /api/purchase/orders",
+    call: (token) =>
+      post("/api/purchase/orders", token, { supplierId: randomUUID(), lines: [{ itemId: randomUUID(), qty: 1, price: 1 }] }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "purchasing"],
+  },
+  {
+    name: "POST /api/purchase/orders/confirm",
+    call: (token) => post("/api/purchase/orders/confirm", token, { poId: randomUUID() }),
+    allowed: ["admin", "purchasing"],
+  },
+  {
+    name: "POST /api/purchase/receive",
+    call: (token) =>
+      post("/api/purchase/receive", token, { poId: randomUUID(), lines: [{ lineNo: 1, qty: 1 }] }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "warehouse"],
+  },
+  {
+    name: "POST /api/purchase/pass-qc",
+    call: (token) => post("/api/purchase/pass-qc", token, { grnId: randomUUID() }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "warehouse"],
+  },
   // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
   // MỘT chứng từ cụ thể (chain[approvals.length] === vai gọi HOẶC admin), không phải 1 danh sách
   // vai tĩnh theo endpoint như các case trên — cùng lý do /api/team/accept cũng không có ở đây.

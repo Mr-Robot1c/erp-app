@@ -22,3 +22,9 @@ export const postReceipt = (amount: number, method: "cash" | "bank"): PostingLin
 ];
 
 export const isBalanced = (lines: PostingLine[]) => lines.reduce((s, l) => s + l[1] - l[2], 0) === 0;
+
+/** Nhập kho (GRN): Nợ 156 (hàng hoá) | 152 (vật tư) / Có 331 phải trả NCC — giá tạm = giá đơn mua (lô 3.2). */
+export const postGrn = (byAccount: Record<string, number>): PostingLine[] => {
+  const total = Object.values(byAccount).reduce((a, b) => a + b, 0);
+  return [...Object.entries(byAccount).map(([acc, v]): PostingLine => [acc, v, 0]), ["331", 0, total]];
+};

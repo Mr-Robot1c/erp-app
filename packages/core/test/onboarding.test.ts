@@ -26,7 +26,10 @@ const DEFAULT_TEMPLATE: IndustryTemplate = {
 describe("buildTenantSeed", () => {
   it("luôn tạo kho K1 và chép đủ bộ tài khoản của mẫu", () => {
     const seed = buildTenantSeed(TRADE_TEMPLATE, false);
-    expect(seed.warehouses).toEqual([{ code: "K1", name: "Kho chính" }]);
+    expect(seed.warehouses).toEqual([
+      { code: "K1", name: "Kho chính" },
+      { code: "QC", name: "Kho chờ kiểm" },
+    ]);
     expect(seed.accounts).toEqual([{ code: "111", name: "Tiền mặt" }]);
   });
 

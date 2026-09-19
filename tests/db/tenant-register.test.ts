@@ -45,7 +45,7 @@ describe("AC-01 đăng ký doanh nghiệp có dữ liệu mẫu", () => {
     expect(accounts.length).toBeGreaterThan(0);
 
     const warehouses = await sql`select code from warehouses where tenant_id = ${tenantId}`;
-    expect(warehouses.map((w) => w.code)).toEqual(["K1"]);
+    expect(warehouses.map((w) => w.code).sort()).toEqual(["K1", "QC"]);
 
     // Tồn đầu mẫu (lô 2.3): hàng hoá/vật tư có tồn ở K1, dịch vụ/thành phẩm không.
     const stockRows = await sql`

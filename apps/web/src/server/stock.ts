@@ -8,9 +8,12 @@ export async function lockItems(s: TransactionSql, tenantId: string, itemIds: st
   await s`select id from items where tenant_id = ${tenantId} and id in ${s(ids)} order by id for update`;
 }
 
+/** Tồn thực dùng được — KHÔNG tính kho chờ kiểm QC (lô 3.2). */
 export async function onHand(s: TransactionSql, tenantId: string, itemId: string): Promise<number> {
   const [r] = await s<{ v: string }[]>`
-    select coalesce(sum(qty), 0) as v from stock_moves where tenant_id = ${tenantId} and item_id = ${itemId}`;
+    select coalesce(sum(m.qty), 0) as v
+    from stock_moves m join warehouses w on w.id = m.warehouse_id and w.tenant_id = m.tenant_id
+    where m.tenant_id = ${tenantId} and m.item_id = ${itemId} and w.code <> 'QC'`;
   return Number(r.v);
 }
 

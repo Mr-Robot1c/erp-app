@@ -50,7 +50,7 @@ export async function deliverOrder(s: TransactionSql, m: Member, input: DeliverI
       Number(r.qty),
     ]),
   );
-  const [wh] = await s<{ id: string }[]>`select id from warehouses where tenant_id = ${m.tenantId} order by code limit 1`;
+  const [wh] = await s<{ id: string }[]>`select id from warehouses where tenant_id = ${m.tenantId} and code <> 'QC' order by code limit 1`;
 
   // 1) Kiểm hết trước, chưa ghi gì.
   const plan: Planned[] = [];

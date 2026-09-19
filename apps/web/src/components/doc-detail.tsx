@@ -28,6 +28,13 @@ export type DocMeta = {
   total?: number;
   note?: string;
   delivered?: number;
+  received?: number;
+  poNo?: string;
+  qc?: boolean;
+  qcPassed?: boolean;
+  variance?: { lineNo: number; diff: number }[];
+  eta?: string;
+  sentToSupplier?: boolean;
   deliveredAll?: boolean;
   deliverDate?: string;
   signedBy?: string;
@@ -107,6 +114,7 @@ export function DocDetail({
   }, [apply, fetchAll]);
 
   const isOrder = doc.doc_type === "SO";
+  const isPo = doc.doc_type === "PO";
   const total = lines.reduce((s, l) => s + Math.round(Number(l.qty) * Number(l.price)), 0);
   const info: [string, ReactNode][] = [
     ["Ngày", doc.doc_date],
@@ -165,6 +173,7 @@ export function DocDetail({
               <th className="px-2 py-2 text-right">Thành tiền</th>
               {isOrder && <th className="px-2 py-2 text-right">Giữ</th>}
               {isOrder && <th className="px-2 py-2 text-right">Đã giao</th>}
+              {isPo && <th className="px-2 py-2 text-right">Đã nhận</th>}
             </tr>
           </thead>
           <tbody>
@@ -178,6 +187,7 @@ export function DocDetail({
                 </td>
                 {isOrder && <td className="px-2 py-1.5 text-right font-mono tabular-nums">{held[l.line_no] ?? 0}</td>}
                 {isOrder && <td className="px-2 py-1.5 text-right font-mono tabular-nums">{Number(l.meta?.delivered ?? 0)}</td>}
+                {isPo && <td className="px-2 py-1.5 text-right font-mono tabular-nums">{Number(l.meta?.received ?? 0)}</td>}
               </tr>
             ))}
           </tbody>

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Role } from "@erp/core";
 import { createClient } from "@/server/supabase";
-import { SalesBoard } from "@/components/sales-board";
+import { DocBoard } from "@/components/doc-board";
 import type { DocRow } from "@/components/doc-detail";
 import { DOC_COLUMNS } from "@/lib/doc-columns";
 
@@ -27,7 +27,8 @@ export default async function SalesPage() {
   ]);
 
   return (
-    <SalesBoard
+    <DocBoard
+      module="sales"
       role={membership.role as Role}
       userId={user.id}
       partners={partners ?? []}

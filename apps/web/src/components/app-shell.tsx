@@ -34,7 +34,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "NGHIỆP VỤ",
     items: [
       { view: "sales", label: "Bán hàng", href: "/app/sales", built: true },
-      { view: "buy", label: "Mua hàng", href: "/app/buy", built: false, note: "lô 3.1" },
+      { view: "buy", label: "Mua hàng", href: "/app/buy", built: true },
       { view: "stock", label: "Kho", href: "/app/stock", built: true },
       { view: "acc", label: "Kế toán", href: "/app/acc", built: true },
       { view: "int", label: "Nội bộ", href: "/app/int", built: false, note: "lô 5.1" },

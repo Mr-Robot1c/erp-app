@@ -11,10 +11,17 @@ export default async function StockPage() {
   const { data: membership } = await supabase.from("memberships").select("role").eq("user_id", user.id).maybeSingle();
   if (!membership) redirect("/onboarding");
 
-  const [{ data: items }, { data: avail }] = await Promise.all([
+  const [{ data: items }, { data: avail }, { data: whs }, { data: moves }] = await Promise.all([
     supabase.from("items").select("id, code, name, kind, uom").neq("kind", "service").order("name"),
     supabase.from("v_available").select("item_id, on_hand, reserved, available"),
+    supabase.from("warehouses").select("id, code"),
+    supabase.from("v_on_hand").select("item_id, warehouse_id, qty"),
   ]);
+  const qcIds = new Set((whs ?? []).filter((w) => w.code === "QC").map((w) => w.id as string));
+  const qcQty = new Map<string, number>();
+  for (const mv of moves ?? []) {
+    if (qcIds.has(mv.warehouse_id as string)) qcQty.set(mv.item_id as string, (qcQty.get(mv.item_id as string) ?? 0) + Number(mv.qty));
+  }
   const byItem = new Map((avail ?? []).map((a) => [a.item_id as string, a]));
 
   return (
@@ -29,12 +36,13 @@ export default async function StockPage() {
               <th className="px-3 py-2 text-right">Tồn</th>
               <th className="px-3 py-2 text-right">Đang giữ</th>
               <th className="px-3 py-2 text-right">Khả dụng</th>
+              <th className="px-3 py-2 text-right">Chờ kiểm</th>
             </tr>
           </thead>
           <tbody>
             {(items ?? []).length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-4 text-[var(--ink2)]">
+                <td colSpan={6} className="px-3 py-4 text-[var(--ink2)]">
                   Chưa có mặt hàng nào.
                 </td>
               </tr>
@@ -51,6 +59,7 @@ export default async function StockPage() {
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{Number(a?.on_hand ?? 0)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{Number(a?.reserved ?? 0)}</td>
                   <td className={`px-3 py-2 text-right font-mono tabular-nums ${avl <= 0 ? "text-[var(--bad)]" : ""}`}>{avl}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-[var(--ink2)]">{qcQty.get(it.id as string) ?? 0}</td>
                 </tr>
               );
             })}
