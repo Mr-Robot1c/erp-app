@@ -164,6 +164,33 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
       post("/api/purchase/pay", token, { supplierId: randomUUID(), amount: 1000, method: "cash" }, { "idempotency-key": randomUUID() }),
     allowed: ["admin", "accountant", "chief_accountant"],
   },
+  {
+    name: "POST /api/stock/transfer",
+    call: (token) =>
+      post("/api/stock/transfer", token, { itemId: randomUUID(), fromWh: randomUUID(), toWh: randomUUID(), qty: 1 }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "warehouse"],
+  },
+  {
+    name: "POST /api/stock/adjust",
+    call: (token) => post("/api/stock/adjust", token, { itemId: randomUUID(), delta: -1, reason: "CASES" }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "warehouse"],
+  },
+  {
+    name: "POST /api/sales/return",
+    call: (token) =>
+      post("/api/sales/return", token, { invoiceId: randomUUID(), condition: "good", lines: [{ lineNo: 1, qty: 1 }] }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "sales_lead", "sales"],
+  },
+  {
+    name: "POST /api/purchase/return",
+    call: (token) => post("/api/purchase/return", token, { poId: randomUUID(), lines: [{ lineNo: 1, qty: 1 }] }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "purchasing", "warehouse"],
+  },
+  {
+    name: "POST /api/docs/cancel",
+    call: (token) => post("/api/docs/cancel", token, { docId: randomUUID() }),
+    allowed: ["admin", "sales_lead", "sales", "purchasing"],
+  },
   // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
   // MỘT chứng từ cụ thể (chain[approvals.length] === vai gọi HOẶC admin), không phải 1 danh sách
   // vai tĩnh theo endpoint như các case trên — cùng lý do /api/team/accept cũng không có ở đây.

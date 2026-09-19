@@ -51,3 +51,22 @@ export const postPayment = (amount: number, method: "cash" | "bank"): PostingLin
   ["331", amount, 0],
   [method === "cash" ? "111" : "112", 0, amount],
 ];
+
+/** Điều chỉnh kho sau kiểm kê (lô 3.5): thiếu → Nợ 642 / Có 156|152; thừa → Nợ 156|152 / Có 642. */
+export const postStockAdjust = (amount: number, delta: number, invAccount: string): PostingLine[] =>
+  delta < 0 ? [["642", amount, 0], [invAccount, 0, amount]] : [[invAccount, amount, 0], ["642", 0, amount]];
+
+/** Trả hàng bán (lô 3.5): đảo doanh thu + thuế + phải thu, đảo giá vốn theo giá đã xuất. */
+export const postSalesReturn = (net: number, tax: number, cogs: number): PostingLine[] => [
+  ["511", net, 0],
+  ["3331", tax, 0],
+  ["131", 0, net + tax],
+  ["156", cogs, 0],
+  ["632", 0, cogs],
+];
+
+/** Trả hàng mua (lô 3.5): giảm phải trả NCC, xuất hàng khỏi kho theo giá đơn mua. */
+export const postPurchaseReturn = (amount: number, invAccount: string): PostingLine[] => [
+  ["331", amount, 0],
+  [invAccount, 0, amount],
+];

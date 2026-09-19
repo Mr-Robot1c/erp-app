@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { can, type Role } from "@erp/core";
+import { StockActions } from "@/components/stock-actions";
 import { KIND_LABEL_ITEM } from "@/lib/item-kinds";
 import { createClient } from "@/server/supabase";
 
@@ -12,9 +14,9 @@ export default async function StockPage() {
   if (!membership) redirect("/onboarding");
 
   const [{ data: items }, { data: avail }, { data: whs }, { data: moves }] = await Promise.all([
-    supabase.from("items").select("id, code, name, kind, uom").neq("kind", "service").order("name"),
+    supabase.from("items").select("id, code, name, kind, uom, tracking").neq("kind", "service").order("name"),
     supabase.from("v_available").select("item_id, on_hand, reserved, available"),
-    supabase.from("warehouses").select("id, code"),
+    supabase.from("warehouses").select("id, code").order("code"),
     supabase.from("v_on_hand").select("item_id, warehouse_id, qty"),
   ]);
   const qcIds = new Set((whs ?? []).filter((w) => w.code === "QC").map((w) => w.id as string));
@@ -22,11 +24,23 @@ export default async function StockPage() {
   for (const mv of moves ?? []) {
     if (qcIds.has(mv.warehouse_id as string)) qcQty.set(mv.item_id as string, (qcQty.get(mv.item_id as string) ?? 0) + Number(mv.qty));
   }
+  const book: Record<string, number> = {};
+  for (const mv of moves ?? []) book[`${mv.item_id}|${mv.warehouse_id}`] = Number(mv.qty);
+  const canAdjust = can(membership.role as Role, "adj");
   const byItem = new Map((avail ?? []).map((a) => [a.item_id as string, a]));
 
   return (
     <div>
-      <h1 className="text-lg font-semibold">Kho</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg font-semibold">Kho</h1>
+        {canAdjust && (
+          <StockActions
+            items={(items ?? []).map((i) => ({ id: i.id as string, code: i.code as string, name: i.name as string, tracking: i.tracking as string }))}
+            warehouses={(whs ?? []).map((w) => ({ id: w.id as string, code: w.code as string }))}
+            book={book}
+          />
+        )}
+      </div>
       <div className="mt-3 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="stock-table">
           <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">

@@ -243,3 +243,36 @@ export const paySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
 });
 export type PayInput = z.infer<typeof paySchema>;
+
+export const transferSchema = z
+  .object({
+    itemId: z.string().uuid(),
+    fromWh: z.string().uuid(),
+    toWh: z.string().uuid(),
+    qty: z.number().positive("Số lượng phải lớn hơn 0"),
+  })
+  .refine((v) => v.fromWh !== v.toWh, { message: "Kho nguồn và kho đích phải khác nhau" });
+export type TransferInput = z.infer<typeof transferSchema>;
+
+export const adjustSchema = z.object({
+  itemId: z.string().uuid(),
+  delta: z.number().refine((n) => n !== 0, { message: "Chênh lệch phải khác 0" }),
+  reason: z.string().trim().min(1, "Thiếu lý do điều chỉnh"),
+  warehouseId: z.string().uuid().optional(),
+});
+export type AdjustInput = z.infer<typeof adjustSchema>;
+
+export const salesReturnSchema = z.object({
+  invoiceId: z.string().uuid(),
+  condition: z.enum(["good", "defect"]),
+  lines: z.array(z.object({ lineNo: z.number().int().positive(), qty: z.number().positive("Số lượng phải lớn hơn 0") })).min(1, "Chưa chọn dòng trả"),
+});
+export type SalesReturnInput = z.infer<typeof salesReturnSchema>;
+
+export const purchaseReturnSchema = z.object({
+  poId: z.string().uuid(),
+  lines: z.array(z.object({ lineNo: z.number().int().positive(), qty: z.number().positive("Số lượng phải lớn hơn 0") })).min(1, "Chưa chọn dòng trả"),
+});
+export type PurchaseReturnInput = z.infer<typeof purchaseReturnSchema>;
+
+export const cancelDocSchema = z.object({ docId: z.string().uuid() });

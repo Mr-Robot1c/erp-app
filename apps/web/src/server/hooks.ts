@@ -3,6 +3,7 @@ import type { Member } from "./auth";
 import { orderAfterConfirm } from "./orders-hooks";
 import { poAfterConfirm } from "./purchase";
 import { executePayment } from "./pay";
+import { adjustAfterConfirm } from "./stock-ops";
 import { bookVendorInvoice } from "./vinv";
 
 /** Việc chạy SAU KHI một chứng từ đạt `confirmed` (do duyệt đủ chuỗi hoặc xác nhận thẳng).
@@ -19,6 +20,8 @@ export async function afterConfirm(s: TransactionSql, m: Member, doc: Record<str
     case "PAY":
       await executePayment(s, m, doc.id as string);
       return;
+    case "ADJ":
+      return adjustAfterConfirm(s, m, doc);
     default:
       return; // QUOTE, EXP: không có việc sau xác nhận
   }
