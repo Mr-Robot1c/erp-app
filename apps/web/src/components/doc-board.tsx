@@ -61,6 +61,7 @@ export function DocBoard({
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [receiving, setReceiving] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [buying, setBuying] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -85,6 +86,11 @@ export function DocBoard({
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">{module === "buy" ? "Mua hàng" : "Bán hàng"}</h1>
         <div className="flex gap-2">
+          {module === "buy" && can(role, "pay") && (
+            <button id="btn-new-pay" className={btnPrimary} onClick={() => setPaying(true)}>
+              + Trả tiền
+            </button>
+          )}
           {module === "buy" && can(role, "po") && (
             <button id="btn-new-po" className={btnPrimary} onClick={() => setBuying(true)}>
               + Lập đơn mua
@@ -169,7 +175,7 @@ export function DocBoard({
               >
                 <td className="px-3 py-2 font-mono text-[var(--acc)]">{d.doc_no}</td>
                 <td className="px-3 py-2">{partnerName(d.partner_id)}</td>
-                <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(d.doc_type === "RCPT" ? d.meta.amount ?? 0 : d.meta.totals?.total ?? 0))}</td>
+                <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(d.doc_type === "RCPT" || d.doc_type === "PAY" ? d.meta.amount ?? 0 : d.meta.totals?.total ?? 0))}</td>
                 <td className="px-3 py-2">
                   <StatusPill status={d.status} label={statusLabelOf(d)} />
                 </td>
@@ -201,6 +207,18 @@ export function DocBoard({
           onClose={() => setBuying(false)}
           onCreated={(id) => {
             setBuying(false);
+            router.refresh();
+            setOpenId(id);
+          }}
+        />
+      )}
+
+      {paying && (
+        <PayForm
+          partners={partners.filter((p) => p.kind !== "customer")}
+          onClose={() => setPaying(false)}
+          onCreated={(id) => {
+            setPaying(false);
             router.refresh();
             setOpenId(id);
           }}
@@ -285,6 +303,11 @@ function extraInfo(d: DocRow): [string, ReactNode][] {
     if (d.meta.due) out.push(["Hạn thanh toán", String(d.meta.due)]);
     if (d.meta.cogsAdjustment) out.push(["Chênh giá vốn", formatMoney(Number(d.meta.cogsAdjustment))]);
     if (d.meta.matchNote) out.push(["Lệch khi đối chiếu", String(d.meta.matchNote)]);
+  }
+  if (d.doc_type === "PAY") {
+    out.push(["Số tiền", formatMoney(Number(d.meta.amount ?? 0))]);
+    out.push(["Hình thức", d.meta.method === "cash" ? "Tiền mặt" : "Chuyển khoản"]);
+    if (d.meta.bankRef) out.push(["Mã giao dịch", String(d.meta.bankRef)]);
   }
   if (d.doc_type === "RCPT") {
     out.push(["Số tiền", formatMoney(Number(d.meta.amount ?? 0))]);
@@ -468,7 +491,7 @@ function DocActions({
         {myTurn && (
           <>
             <button id="btn-approve" className={btnPrimary} disabled={busy} onClick={() => void run("/api/approvals/decide", { docId: doc.id, decision: "approve" })}>
-              {isOrder ? "Duyệt công nợ" : isPo ? "Duyệt đơn mua" : doc.doc_type === "VINV" ? "Duyệt hoá đơn lệch" : "Duyệt giá"}
+              {isOrder ? "Duyệt công nợ" : isPo ? "Duyệt đơn mua" : doc.doc_type === "VINV" ? "Duyệt hoá đơn lệch" : doc.doc_type === "PAY" ? "Duyệt chi" : "Duyệt giá"}
             </button>
             <button id="btn-reject" className={btnGhost} disabled={busy} onClick={() => setRejecting(!rejecting)}>
               Từ chối
@@ -739,6 +762,74 @@ function ReceiptForm({
         </button>
         <button id="btn-save-receipt" className={btnPrimary} disabled={busy} onClick={() => void submit()}>
           Ghi thu tiền
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+/** Form trả tiền nhà cung cấp (lô 3.4): nhà cung cấp gõ-để-tìm, số tiền, hình thức, mã giao dịch ngân hàng (chống ghi trùng). */
+function PayForm({
+  partners,
+  onClose,
+  onCreated,
+}: {
+  partners: PartnerOption[];
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
+  const [partnerId, setPartnerId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState<"bank" | "cash">("bank");
+  const [bankRef, setBankRef] = useState("");
+  const [key] = useState(newKey);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function submit() {
+    if (!partnerId) return setErr("Chọn nhà cung cấp.");
+    if (!(Number(amount) > 0)) return setErr("Nhập số tiền lớn hơn 0.");
+    setBusy(true);
+    setErr("");
+    const res = await callApi(
+      "/api/purchase/pay",
+      { supplierId: partnerId, amount: Math.round(Number(amount)), method, bankRef: bankRef.trim() || undefined },
+      key,
+    );
+    setBusy(false);
+    if (!res.ok) return setErr(res.error.code === "duplicate" ? res.error.message : (VI_ERR[res.error.code] ?? res.error.message));
+    onCreated(res.data.id as string);
+  }
+
+  return (
+    <Modal title="Trả tiền nhà cung cấp" onClose={onClose}>
+      <div className="mt-3 grid max-w-md gap-3">
+        <PartnerPicker partners={partners} value={partnerId} onChange={setPartnerId} label="Nhà cung cấp" />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="mb-0.5 block text-[11.5px] text-[var(--ink2)]">Số tiền (đồng)</label>
+            <input id="pay-amount" className={inputCls} type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </div>
+          <div>
+            <label className="mb-0.5 block text-[11.5px] text-[var(--ink2)]">Hình thức</label>
+            <select id="pay-method" className={inputCls} value={method} onChange={(e) => setMethod(e.target.value as "bank" | "cash")}>
+              <option value="bank">Chuyển khoản</option>
+              <option value="cash">Tiền mặt</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="mb-0.5 block text-[11.5px] text-[var(--ink2)]">Mã giao dịch ngân hàng (nếu có)</label>
+          <input id="pay-ref" className={inputCls} value={bankRef} onChange={(e) => setBankRef(e.target.value)} />
+        </div>
+      </div>
+      {err && <p className="mt-2 text-sm text-[var(--bad)]">{err}</p>}
+      <div className="mt-3 flex justify-end gap-2">
+        <button className={btnGhost} onClick={onClose}>
+          Huỷ
+        </button>
+        <button id="btn-save-pay" className={btnPrimary} disabled={busy} onClick={() => void submit()}>
+          Lập phiếu chi
         </button>
       </div>
     </Modal>

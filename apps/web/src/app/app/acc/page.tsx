@@ -13,13 +13,15 @@ export default async function AccPage() {
   const { data: membership } = await supabase.from("memberships").select("role").eq("user_id", user.id).maybeSingle();
   if (!membership) redirect("/onboarding");
 
-  const [{ data: partners }, { data: recs }, { data: adv }, { data: unmatched }] = await Promise.all([
+  const [{ data: partners }, { data: recs }, { data: adv }, { data: unmatched }, { data: pays }] = await Promise.all([
     supabase.from("partners").select("id, name"),
     supabase.from("receivables").select("id, kind, partner_id, amount, paid, due_date, document_id").order("due_date", { nullsFirst: true }),
     supabase.from("partner_advances").select("partner_id, amount").gt("amount", 0),
     // Phiếu thu có phân bổ "Ứng trước" (không khớp khoản nợ nào) = chờ kế toán khớp tay.
     supabase.from("receipt_allocations").select("id, amount, receipt_id").is("receivable_id", null).eq("note", "Ứng trước"),
+    supabase.from("payables").select("id, partner_id, amount, paid, due_date").order("due_date", { nullsFirst: true }),
   ]);
+  const openPay = (pays ?? []).filter((p) => Number(p.amount) - Number(p.paid) > 0);
   const pname = new Map((partners ?? []).map((p) => [p.id as string, p.name as string]));
   const receiptIds = (unmatched ?? []).map((u) => u.receipt_id as string);
   const { data: receipts } = receiptIds.length
@@ -60,6 +62,35 @@ export default async function AccPage() {
                 <td className="px-3 py-2">{KIND[r.kind as string] ?? (r.kind as string)}</td>
                 <td className="px-3 py-2">{(r.due_date as string | null) ?? "—"}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(r.amount) - Number(r.paid))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="mt-5 text-sm font-semibold">Khoản phải trả còn mở</h2>
+      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
+        <table className="w-full text-sm" id="ap-table">
+          <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
+            <tr>
+              <th className={th}>Nhà cung cấp</th>
+              <th className={th}>Hạn</th>
+              <th className={`${th} text-right`}>Còn phải trả</th>
+            </tr>
+          </thead>
+          <tbody>
+            {openPay.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-3 py-4 text-[var(--ink2)]">
+                  Không có khoản nào.
+                </td>
+              </tr>
+            )}
+            {openPay.map((p) => (
+              <tr key={p.id as string} className="border-t border-[var(--line)]">
+                <td className="px-3 py-2">{pname.get(p.partner_id as string) ?? "—"}</td>
+                <td className="px-3 py-2">{(p.due_date as string | null) ?? "—"}</td>
+                <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(p.amount) - Number(p.paid))}</td>
               </tr>
             ))}
           </tbody>

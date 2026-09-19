@@ -45,3 +45,9 @@ export const postVendorInvoice = (p: { adjByAccount: Record<string, number>; ser
   lines.push(payable >= 0 ? ["331", 0, payable] : ["331", -payable, 0]);
   return lines;
 };
+
+/** Trả tiền nhà cung cấp (PAY): Nợ 331 / Có tiền mặt 111 | ngân hàng 112. Lô 3.4. */
+export const postPayment = (amount: number, method: "cash" | "bank"): PostingLine[] => [
+  ["331", amount, 0],
+  [method === "cash" ? "111" : "112", 0, amount],
+];

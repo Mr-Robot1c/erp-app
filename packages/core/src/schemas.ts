@@ -234,3 +234,12 @@ export const vendorInvoiceSchema = z.object({
     .min(1, "Chưa có dòng hoá đơn"),
 });
 export type VendorInvoiceInput = z.infer<typeof vendorInvoiceSchema>;
+
+export const paySchema = z.object({
+  supplierId: z.string().uuid(),
+  amount: z.number().int().positive("Số tiền phải lớn hơn 0"),
+  method: z.enum(["bank", "cash"]),
+  bankRef: z.string().trim().min(1).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+});
+export type PayInput = z.infer<typeof paySchema>;
