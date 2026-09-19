@@ -145,3 +145,18 @@ export const deliverSchema = z.object({
   lines: z.array(deliverLineSchema).min(1, "Chưa nhập số lượng xuất"),
 });
 export type DeliverInput = z.infer<typeof deliverSchema>;
+
+export const issueInvoiceSchema = z.object({
+  invoiceId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+});
+export type IssueInvoiceInput = z.infer<typeof issueInvoiceSchema>;
+
+export const receiptSchema = z.object({
+  partnerId: z.string().uuid(),
+  amount: z.number().int().positive("Số tiền phải lớn hơn 0"),
+  method: z.enum(["bank", "cash"]),
+  bankRef: z.string().trim().min(1).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+});
+export type ReceiptInput = z.infer<typeof receiptSchema>;

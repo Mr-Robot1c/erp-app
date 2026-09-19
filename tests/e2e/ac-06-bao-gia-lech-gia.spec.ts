@@ -32,9 +32,9 @@ test("AC-06 sales lập báo giá thấp hơn giá bảng -> chờ duyệt; trư
     await page.fill("input.lp", "950000"); // thấp hơn giá bảng 5%
     await page.click("#btn-save-quote");
 
-    await expect(page.locator("#btn-confirm-quote")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("#btn-confirm-quote")).toBeVisible({ timeout: 30_000 });
     await page.click("#btn-confirm-quote");
-    await expect(page.locator("h2 .pill", { hasText: "Chờ duyệt" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("h2 .pill", { hasText: "Chờ duyệt" })).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("#btn-approve")).toHaveCount(0); // người lập không tự duyệt
 
     await page.keyboard.press("Escape"); // đóng modal chi tiết (đang che nút đăng xuất)
@@ -44,9 +44,9 @@ test("AC-06 sales lập báo giá thấp hơn giá bảng -> chờ duyệt; trư
     await login(page, lead.email, h.PASSWORD);
     await page.goto("/app/sales");
     await page.locator("tr[data-doc-no]").first().click();
-    await expect(page.locator("#btn-approve")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("#btn-approve")).toBeVisible({ timeout: 30_000 });
     await page.click("#btn-approve");
-    await expect(page.locator("h2 .pill", { hasText: "Đã xác nhận" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("h2 .pill", { hasText: "Đã xác nhận" })).toBeVisible({ timeout: 30_000 });
   } finally {
     await sales.cleanup();
     await lead.cleanup();

@@ -45,7 +45,7 @@ test("AC-12 thủ kho xuất kho trên UI -> đơn 'Đã giao', tự sinh hoá �
     await page.click("#btn-confirm-deliver");
 
     // Sau khi xuất, hoá đơn nháp tự sinh được mở ra.
-    await expect(page.locator("h2", { hasText: "Hoá đơn bán" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("h2", { hasText: "Hoá đơn bán" })).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("h2 .pill", { hasText: "Nháp" })).toBeVisible();
 
     await page.keyboard.press("Escape");

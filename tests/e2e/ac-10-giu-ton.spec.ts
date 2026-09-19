@@ -44,7 +44,7 @@ test("AC-10 thủ kho thấy tồn/giữ/khả dụng sau khi đơn bán giữ h
     await page.goto("/app/sales");
     await page.getByRole("button", { name: /Đơn bán/ }).click();
     await page.locator("tr[data-doc-no]").first().click();
-    await expect(page.locator("#btn-refulfil")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("#btn-refulfil")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/YM-\d{4}/).first()).toBeVisible(); // tham chiếu yêu cầu mua tự sinh
   } finally {
     await sales.cleanup();

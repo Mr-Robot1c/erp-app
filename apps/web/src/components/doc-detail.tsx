@@ -31,6 +31,12 @@ export type DocMeta = {
   deliveredAll?: boolean;
   deliverDate?: string;
   signedBy?: string;
+  due?: string;
+  issueDate?: string;
+  amount?: number;
+  method?: string;
+  bankRef?: string | null;
+  advApplied?: number;
   [k: string]: unknown;
 };
 export type LineRow = { line_no: number; item_id: string | null; qty: number; price: number; tax_pct: number; meta: DocMeta };

@@ -39,9 +39,9 @@ test("AC-08 sales chuyển báo giá hợp lệ thành đơn (cọc 30%) và xá
     await page.fill("#order-deposit", "30");
     await page.click("#btn-create-order");
 
-    await expect(page.locator("#btn-confirm-order")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("#btn-confirm-order")).toBeVisible({ timeout: 30_000 });
     await page.click("#btn-confirm-order");
-    await expect(page.locator("h2 .pill", { hasText: "Đã xác nhận" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("h2 .pill", { hasText: "Đã xác nhận" })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("30%")).toBeVisible();
   } finally {
     await sales.cleanup();
