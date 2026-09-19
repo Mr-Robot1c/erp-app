@@ -3,8 +3,18 @@ import { useEffect, type ReactNode } from "react";
 import { STATUS_LABEL, type DocStatus } from "@erp/core";
 
 /** Pill trạng thái theo bộ màu chuẩn (03-chuan-giao-dien mục D) — class `.pill.<status>` ở globals.css. */
-export function StatusPill({ status }: { status: DocStatus }) {
-  return <span className={`pill ${status}`}>{STATUS_LABEL[status] ?? status}</span>;
+export function StatusPill({ status, label }: { status: DocStatus; label?: string }) {
+  return <span className={`pill ${status}`}>{label ?? STATUS_LABEL[status] ?? status}</span>;
+}
+
+/** Nhãn trạng thái hiển thị theo NGHIỆP VỤ: đơn bán đã giao hết nhưng chưa thu đủ vẫn `confirmed`/`partial` trong DB
+ * (meta.deliveredAll), người dùng phải thấy "Đã giao" / "Đã giao một phần" (AC-12, AC-14). */
+export function statusLabelOf(doc: { doc_type: string; status: DocStatus; meta: { deliveredAll?: boolean } }): string {
+  if (doc.doc_type === "SO") {
+    if (doc.meta.deliveredAll && doc.status !== "done" && doc.status !== "cancelled") return "Đã giao";
+    if (doc.status === "partial") return "Đã giao một phần";
+  }
+  return STATUS_LABEL[doc.status] ?? doc.status;
 }
 
 /** Khung modal dùng chung cho form + chi tiết chứng từ. Esc / bấm nền để đóng. */

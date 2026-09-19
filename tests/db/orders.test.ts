@@ -90,7 +90,7 @@ describe("đơn bán (lô 2.2) — AC-07 (chuyển đơn), AC-08, AC-09", () => 
     expect(lines).toHaveLength(2);
     const [doc] = await sql`select meta, refs from documents where id = ${orderId}`;
     expect(Number(doc.meta.total)).toBe(48_400_000); // 44tr + thuế 10%
-    expect(doc.refs).toHaveLength(1);
+    expect(doc.refs).toHaveLength(2); // báo giá gốc + yêu cầu mua tự sinh do kho chưa có hàng (lô 2.3)
     const deposit = await sql`select amount from receivables where document_id = ${orderId} and kind = 'deposit'`;
     expect(Number(deposit[0].amount)).toBe(14_520_000); // 30% của 48,4tr
     const invoices = await sql`select 1 from receivables where document_id = ${orderId} and kind = 'invoice'`;

@@ -2,8 +2,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { STATUSES, STATUS_LABEL, can, formatMoney, type DocStatus, type Role } from "@erp/core";
-import { DocDetail, type DocRow } from "./doc-detail";
-import { Modal, StatusPill, btnGhost, btnPrimary, callApi, inputCls, newKey } from "./doc-ui";
+import { DocDetail, type DocRow, type LineRow } from "./doc-detail";
+import { Modal, StatusPill, btnGhost, btnPrimary, callApi, inputCls, newKey, statusLabelOf } from "./doc-ui";
 import { LinesEditor, emptyLine, linesTotal, type EditorLine, type LineItemOption } from "./lines-editor";
 import { PartnerPicker, type PartnerOption } from "./partner-picker";
 
@@ -13,6 +13,8 @@ type Tab = { key: string; label: string };
 const TABS: Tab[] = [
   { key: "QUOTE", label: "Báo giá" },
   { key: "SO", label: "Đơn bán" },
+  { key: "DO", label: "Phiếu xuất" },
+  { key: "INV", label: "Hoá đơn" },
 ];
 
 const VI_ERR: Record<string, string> = {
@@ -137,7 +139,7 @@ export function SalesBoard({
                 <td className="px-3 py-2">{partnerName(d.partner_id)}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(d.meta.totals?.total ?? 0))}</td>
                 <td className="px-3 py-2">
-                  <StatusPill status={d.status} />
+                  <StatusPill status={d.status} label={statusLabelOf(d)} />
                 </td>
                 <td className="px-3 py-2">{d.created_by_name}</td>
                 <td className="px-3 py-2">{d.doc_date}</td>
@@ -169,9 +171,12 @@ export function SalesBoard({
           onClose={() => setOpenId(null)}
           onChanged={() => router.refresh()}
           openByNo={(no) => setOpenId(docs.find((x) => x.doc_no === no)?.id ?? openId)}
+          canOpenNo={(no) => docs.some((x) => x.doc_no === no)}
           extraInfo={extraInfo}
-          actions={(d, reload) => (
+          actions={(d, reload, ctx) => (
             <DocActions
+              ctx={ctx}
+              items={items}
               doc={d}
               role={role}
               userId={userId}
@@ -259,7 +264,11 @@ function DocActions({
   userId,
   reload,
   openDoc,
+  ctx,
+  items,
 }: {
+  ctx: { lines: LineRow[]; held: Record<number, number> };
+  items: LineItemOption[];
   doc: DocRow;
   role: Role;
   userId: string;
@@ -274,6 +283,7 @@ function DocActions({
   const [terms, setTerms] = useState<"cash" | "credit">("cash");
   const [depositPct, setDepositPct] = useState("0");
   const [orderKey] = useState(newKey);
+  const [delivering, setDelivering] = useState(false);
 
   async function run(url: string, body: unknown, key?: string) {
     setBusy(true);
@@ -313,6 +323,16 @@ function DocActions({
         {isOrder && doc.status === "draft" && can(role, "cso") && (
           <button id="btn-confirm-order" className={btnPrimary} disabled={busy} onClick={() => void run("/api/orders/confirm", { orderId: doc.id })}>
             Xác nhận đơn
+          </button>
+        )}
+        {isOrder && (doc.status === "confirmed" || doc.status === "partial") && can(role, "deliver") && (
+          <button id="btn-deliver" className={btnPrimary} disabled={busy} onClick={() => setDelivering(!delivering)}>
+            Xuất kho
+          </button>
+        )}
+        {isOrder && (doc.status === "confirmed" || doc.status === "partial") && can(role, "deliver") && (
+          <button id="btn-refulfil" className={btnGhost} disabled={busy} onClick={() => void run("/api/orders/refulfil", { orderId: doc.id })}>
+            Đáp ứng lại
           </button>
         )}
         {myTurn && (
@@ -356,6 +376,19 @@ function DocActions({
         </div>
       )}
 
+      {delivering && (
+        <DeliverForm
+          doc={doc}
+          ctx={ctx}
+          items={items}
+          onDone={(id) => {
+            setDelivering(false);
+            reload();
+            if (id) openDoc(id);
+          }}
+        />
+      )}
+
       {rejecting && (
         <div className="mt-2 flex gap-2">
           <input className={inputCls} placeholder="Lý do từ chối" value={reason} onChange={(e) => setReason(e.target.value)} />
@@ -368,6 +401,102 @@ function DocActions({
           </button>
         </div>
       )}
+      {err && <p className="mt-2 text-sm text-[var(--bad)]">{err}</p>}
+    </div>
+  );
+}
+
+/** Form xuất kho (lô 2.4): mỗi dòng còn giữ hàng nhập số xuất (mặc định = số đang giữ); hàng serial khai danh sách
+ * số serial, hàng theo lô khai số lô; có quy đổi đơn vị thì chọn đơn vị. Nút chốt đặt tên theo việc (03 mục E). */
+function DeliverForm({
+  doc,
+  ctx,
+  items,
+  onDone,
+}: {
+  doc: DocRow;
+  ctx: { lines: LineRow[]; held: Record<number, number> };
+  items: LineItemOption[];
+  onDone: (invId: string | null) => void;
+}) {
+  type Row = { qty: string; uom: string; serials: string; lot: string };
+  const rows = ctx.lines.filter((l) => (items.find((i) => i.id === l.item_id)?.kind ?? "goods") === "service" || (ctx.held[l.line_no] ?? 0) > 0);
+  const [vals, setVals] = useState<Record<number, Row>>({});
+  // Dòng chi tiết có thể tải xong SAU khi form mở -> giá trị mặc định tính lúc đọc, không ở lúc khởi tạo state.
+  const rowOf = (l: LineRow): Row =>
+    vals[l.line_no] ?? { qty: String(ctx.held[l.line_no] ?? Number(l.qty) - Number(l.meta?.delivered ?? 0)), uom: "", serials: "", lot: "" };
+  const [signedBy, setSignedBy] = useState("");
+  const [key] = useState(newKey);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const set = (l: LineRow, p: Partial<Row>) => setVals({ ...vals, [l.line_no]: { ...rowOf(l), ...p } });
+
+  async function submit() {
+    const lines = rows
+      .map((l) => {
+        const v = rowOf(l);
+        const it = items.find((i) => i.id === l.item_id);
+        const qty = Number(v.qty);
+        if (!(qty > 0)) return null;
+        const line: Record<string, unknown> = { lineNo: l.line_no, qty };
+        if (v.uom) line.uom = v.uom;
+        if (it?.tracking === "serial") line.serials = v.serials.split(/[\s,;]+/).filter(Boolean);
+        if (it?.tracking === "lot") line.lots = [{ lotNo: v.lot.trim(), qty: v.uom && it.uom_factors?.[v.uom] ? qty * it.uom_factors[v.uom] : qty }];
+        return line;
+      })
+      .filter(Boolean);
+    if (!lines.length) return setErr("Chưa nhập số lượng xuất.");
+    setBusy(true);
+    setErr("");
+    const res = await callApi("/api/orders/deliver", { orderId: doc.id, lines, signedBy: signedBy.trim() || undefined }, key);
+    setBusy(false);
+    if (!res.ok) return setErr(VI_ERR[res.error.code] ?? res.error.message);
+    onDone((res.data.invId as string) ?? null);
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-[var(--line)] p-3" id="deliver-form">
+      <table className="w-full text-sm">
+        <tbody>
+          {rows.map((l) => {
+            const it = items.find((i) => i.id === l.item_id);
+            const v = rowOf(l);
+            const factors = Object.keys(it?.uom_factors ?? {});
+            return (
+              <tr key={l.line_no} className="align-top">
+                <td className="py-1 pr-2">{it?.name ?? "—"}</td>
+                <td className="w-24 py-1 pr-2">
+                  <input className={`${inputCls} dq`} type="number" min={0} step="any" value={v.qty} onChange={(e) => set(l, { qty: e.target.value })} />
+                </td>
+                <td className="py-1 pr-2">
+                  {factors.length > 0 && (
+                    <select className={inputCls} value={v.uom} onChange={(e) => set(l, { uom: e.target.value })}>
+                      <option value="">{it?.uom}</option>
+                      {factors.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {it?.tracking === "serial" && (
+                    <input className={`${inputCls} mt-1`} placeholder="Số serial, cách nhau dấu phẩy" value={v.serials} onChange={(e) => set(l, { serials: e.target.value })} />
+                  )}
+                  {it?.tracking === "lot" && (
+                    <input className={`${inputCls} mt-1`} placeholder="Số lô" value={v.lot} onChange={(e) => set(l, { lot: e.target.value })} />
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="mt-2 flex gap-2">
+        <input className={inputCls} placeholder="Người ký nhận (khách)" value={signedBy} onChange={(e) => setSignedBy(e.target.value)} />
+        <button id="btn-confirm-deliver" className={btnPrimary} disabled={busy} onClick={() => void submit()}>
+          Xác nhận xuất kho
+        </button>
+      </div>
       {err && <p className="mt-2 text-sm text-[var(--bad)]">{err}</p>}
     </div>
   );

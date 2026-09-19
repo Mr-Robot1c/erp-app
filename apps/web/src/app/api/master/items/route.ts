@@ -12,8 +12,8 @@ export const POST = handle(async (req: Request) => {
     if (dup.length) throw new AppError("duplicate", "Mã mặt hàng đã tồn tại");
 
     const [row] = await s`
-      insert into items (tenant_id, code, name, kind, uom, price, cost, tracking)
-      values (${m.tenantId}, ${body.code}, ${body.name}, ${body.kind}, ${body.uom}, ${body.price}, ${body.cost}, ${body.tracking})
+      insert into items (tenant_id, code, name, kind, uom, price, cost, tracking, uom_factors)
+      values (${m.tenantId}, ${body.code}, ${body.name}, ${body.kind}, ${body.uom}, ${body.price}, ${body.cost}, ${body.tracking}, ${s.json(body.uomFactors as never)})
       returning *`;
 
     await audit(s, m.tenantId, m.displayName || m.userId, "item.create", body.code);

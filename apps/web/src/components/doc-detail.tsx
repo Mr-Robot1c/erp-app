@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { DOC_LABEL, STATUS_LABEL, formatMoney, type DocStatus, type DocType, type Role } from "@erp/core";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { DOC_COLUMNS } from "@/lib/doc-columns";
-import { Modal, StatusPill } from "./doc-ui";
+import { Modal, StatusPill, statusLabelOf } from "./doc-ui";
 
 export type DocRow = {
   id: string;
@@ -27,9 +27,13 @@ export type DocMeta = {
   depositPct?: number;
   total?: number;
   note?: string;
+  delivered?: number;
+  deliveredAll?: boolean;
+  deliverDate?: string;
+  signedBy?: string;
   [k: string]: unknown;
 };
-type Line = { line_no: number; item_id: string | null; qty: number; price: number; tax_pct: number; meta: DocMeta };
+export type LineRow = { line_no: number; item_id: string | null; qty: number; price: number; tax_pct: number; meta: DocMeta };
 type Hist = { id: number; at: string; actor: string; from_status: string | null; to_status: string; note: string };
 
 /** Chi tiết chứng từ (03-chuan-giao-dien mục E): header → khối thông tin → bảng dòng → nút hành động
@@ -43,31 +47,36 @@ export function DocDetail({
   actions,
   extraInfo,
   openByNo,
+  canOpenNo,
 }: {
   doc: DocRow;
   partnerName: (id: string | null) => string;
   itemName: (id: string | null) => string;
   onClose: () => void;
   onChanged: () => void;
-  actions: (doc: DocRow, reload: () => void) => ReactNode;
+  actions: (doc: DocRow, reload: () => void, ctx: { lines: LineRow[]; held: Record<number, number> }) => ReactNode;
   extraInfo?: (doc: DocRow) => [string, ReactNode][];
   openByNo?: (docNo: string) => void;
+  canOpenNo?: (docNo: string) => boolean;
 }) {
   const [doc, setDoc] = useState(initial);
-  const [lines, setLines] = useState<Line[]>([]);
+  const [lines, setLines] = useState<LineRow[]>([]);
   const [hist, setHist] = useState<Hist[]>([]);
+  const [held, setHeld] = useState<Record<number, number>>({});
 
   const fetchAll = useCallback(async () => {
     const sb = supabaseBrowser();
-    const [d, l, h] = await Promise.all([
+    const [d, l, h, r] = await Promise.all([
       sb.from("documents").select(DOC_COLUMNS).eq("id", initial.id).single(),
       sb.from("document_lines").select("line_no, item_id, qty, price, tax_pct, meta").eq("document_id", initial.id).order("line_no"),
       sb.from("doc_status_history").select("id, at, actor, from_status, to_status, note").eq("document_id", initial.id).order("id"),
+      sb.from("reservations").select("line_no, qty").eq("document_id", initial.id),
     ]);
     return {
       doc: (d.data as unknown as DocRow | null) ?? null,
-      lines: (l.data ?? []) as unknown as Line[],
+      lines: (l.data ?? []) as unknown as LineRow[],
       hist: (h.data ?? []) as unknown as Hist[],
+      held: Object.fromEntries(((r.data ?? []) as { line_no: number; qty: number }[]).map((x) => [x.line_no, Number(x.qty)])),
     };
   }, [initial.id]);
 
@@ -75,6 +84,7 @@ export function DocDetail({
     if (r.doc) setDoc(r.doc);
     setLines(r.lines);
     setHist(r.hist);
+    setHeld(r.held);
   }, []);
 
   const reload = useCallback(async () => {
@@ -90,6 +100,7 @@ export function DocDetail({
     };
   }, [apply, fetchAll]);
 
+  const isOrder = doc.doc_type === "SO";
   const total = lines.reduce((s, l) => s + Math.round(Number(l.qty) * Number(l.price)), 0);
   const info: [string, ReactNode][] = [
     ["Ngày", doc.doc_date],
@@ -101,11 +112,17 @@ export function DocDetail({
           [
             "Tham chiếu",
             <span key="refs" className="flex flex-wrap gap-2">
-              {doc.refs.map((no) => (
-                <button key={no} type="button" className="font-mono text-[var(--acc)] underline" onClick={() => openByNo?.(no)}>
-                  {no}
-                </button>
-              ))}
+              {doc.refs.map((no) =>
+                canOpenNo?.(no) ? (
+                  <button key={no} type="button" className="font-mono text-[var(--acc)] underline" onClick={() => openByNo?.(no)}>
+                    {no}
+                  </button>
+                ) : (
+                  <span key={no} className="font-mono">
+                    {no}
+                  </span>
+                ),
+              )}
             </span>,
           ],
         ] as [string, ReactNode][])
@@ -119,7 +136,7 @@ export function DocDetail({
       title={
         <span className="flex items-center gap-2">
           {DOC_LABEL[doc.doc_type].name} <span className="font-mono text-[var(--acc)]">{doc.doc_no}</span>
-          <StatusPill status={doc.status} />
+          <StatusPill status={doc.status} label={statusLabelOf(doc)} />
         </span>
       }
     >
@@ -140,6 +157,8 @@ export function DocDetail({
               <th className="px-2 py-2 text-right">SL</th>
               <th className="px-2 py-2 text-right">Đơn giá</th>
               <th className="px-2 py-2 text-right">Thành tiền</th>
+              {isOrder && <th className="px-2 py-2 text-right">Giữ</th>}
+              {isOrder && <th className="px-2 py-2 text-right">Đã giao</th>}
             </tr>
           </thead>
           <tbody>
@@ -151,13 +170,15 @@ export function DocDetail({
                 <td className="px-2 py-1.5 text-right font-mono tabular-nums">
                   {formatMoney(Math.round(Number(l.qty) * Number(l.price)))}
                 </td>
+                {isOrder && <td className="px-2 py-1.5 text-right font-mono tabular-nums">{held[l.line_no] ?? 0}</td>}
+                {isOrder && <td className="px-2 py-1.5 text-right font-mono tabular-nums">{Number(l.meta?.delivered ?? 0)}</td>}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-start gap-2">{actions(doc, () => void reload())}</div>
+      <div className="mt-3 flex flex-wrap items-start gap-2">{actions(doc, () => void reload(), { lines, held })}</div>
 
       <h3 className="mt-4 text-sm font-semibold">Lịch sử</h3>
       <ul className="mt-1 text-[12.5px]">

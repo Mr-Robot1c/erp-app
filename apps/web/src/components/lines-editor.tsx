@@ -2,7 +2,16 @@
 import { formatMoney } from "@erp/core";
 import { btnGhost, inputCls } from "./doc-ui";
 
-export type LineItemOption = { id: string; code: string; name: string; price: number };
+export type LineItemOption = {
+  id: string;
+  code: string;
+  name: string;
+  price: number;
+  kind?: string;
+  tracking?: string;
+  uom?: string;
+  uom_factors?: Record<string, number>;
+};
 export type EditorLine = { itemId: string; qty: string; price: string };
 
 export const emptyLine = (): EditorLine => ({ itemId: "", qty: "1", price: "" });

@@ -20,6 +20,7 @@ export const itemSchema = z.object({
   price: z.number().int().nonnegative().default(0),
   cost: z.number().int().nonnegative().default(0),
   tracking: z.enum(["none", "lot", "serial"]).default("none"),
+  uomFactors: z.record(z.string(), z.number().positive()).default({}),
 });
 export type ItemInput = z.infer<typeof itemSchema>;
 
@@ -128,3 +129,19 @@ export type QuoteToOrderInput = z.infer<typeof quoteToOrderSchema>;
 
 export const orderIdSchema = z.object({ orderId: z.string().uuid() });
 export type OrderIdInput = z.infer<typeof orderIdSchema>;
+
+export const deliverLineSchema = z.object({
+  lineNo: z.number().int().positive(),
+  qty: z.number().positive("Số lượng phải lớn hơn 0"),
+  uom: z.string().min(1).optional(),
+  serials: z.array(z.string().min(1)).optional(),
+  lots: z.array(z.object({ lotNo: z.string().min(1), qty: z.number().positive() })).optional(),
+});
+
+export const deliverSchema = z.object({
+  orderId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+  signedBy: z.string().trim().min(1).optional(),
+  lines: z.array(deliverLineSchema).min(1, "Chưa nhập số lượng xuất"),
+});
+export type DeliverInput = z.infer<typeof deliverSchema>;

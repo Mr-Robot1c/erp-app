@@ -17,11 +17,11 @@ export default async function SalesPage() {
 
   const [{ data: partners }, { data: items }, { data: docs }] = await Promise.all([
     supabase.from("partners").select("id, code, name, kind").order("name"),
-    supabase.from("items").select("id, code, name, price").order("name"),
+    supabase.from("items").select("id, code, name, price, kind, tracking, uom, uom_factors").order("name"),
     supabase
       .from("documents")
       .select(DOC_COLUMNS)
-      .in("doc_type", ["QUOTE", "SO"])
+      .in("doc_type", ["QUOTE", "SO", "DO", "INV"])
       .order("created_at", { ascending: false })
       .limit(300),
   ]);
