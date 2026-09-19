@@ -24,6 +24,30 @@ export const itemSchema = z.object({
 });
 export type ItemInput = z.infer<typeof itemSchema>;
 
+/** Sửa danh mục (lô 3.0): `code` bất biến — nếu gửi lên phải trùng mã cũ (server đối chiếu, khác → invalid_argument). */
+export const partnerUpdateSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string().optional(),
+  name: z.string().min(1, "Thiếu tên").optional(),
+  kind: z.enum(["customer", "supplier", "both"]).optional(),
+  creditLimit: z.number().int().nonnegative().optional(),
+});
+export const itemUpdateSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string().optional(),
+  name: z.string().min(1, "Thiếu tên").optional(),
+  kind: z.enum(["goods", "service", "material", "finished"]).optional(),
+  uom: z.string().min(1).optional(),
+  price: z.number().int().nonnegative().optional(),
+  cost: z.number().int().nonnegative().optional(),
+  tracking: z.enum(["none", "lot", "serial"]).optional(),
+  uomFactors: z.record(z.string(), z.number().positive()).optional(),
+});
+export const warehouseSchema = z.object({
+  code: z.string().regex(CODE_RE, "Mã không hợp lệ"),
+  name: z.string().min(1, "Thiếu tên"),
+});
+
 export const docLineSchema = z.object({
   itemId: z.string().uuid().nullable().optional(),
   qty: z.number().nonnegative(),

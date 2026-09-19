@@ -43,7 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "QUẢN TRỊ",
     items: [
-      { view: "master", label: "Danh mục", href: "/app/master", built: false },
+      { view: "master", label: "Danh mục", href: "/app/master", built: true },
       { view: "team", label: "Thành viên", href: "/app/team", built: true },
       { view: "set", label: "Cài đặt", href: "/app/settings", built: true },
       { view: "audit", label: "Nhật ký", href: "/app/audit", built: false },

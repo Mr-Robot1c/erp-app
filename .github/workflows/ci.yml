@@ -24,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
 
+  # Áp migration lên DB dùng chung ĐÚNG MỘT LẦN, trước khi các shard test chạy song song.
   migrate:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -33,13 +34,9 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: |
-          printf 'NEXT_PUBLIC_SUPABASE_URL=%s
-NEXT_PUBLIC_SUPABASE_ANON_KEY=%s
-SUPABASE_SERVICE_ROLE_KEY=%s
-SUPABASE_DB_URL=%s
-SUPABASE_ACCESS_TOKEN=%s
-SUPABASE_PROJECT_REF=%s
-'             "$NEXT_PUBLIC_SUPABASE_URL" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_SERVICE_ROLE_KEY"             "$SUPABASE_DB_URL" "$SUPABASE_ACCESS_TOKEN" "$SUPABASE_PROJECT_REF" > .env.local
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_ANON_KEY=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\nSUPABASE_DB_URL=%s\nSUPABASE_ACCESS_TOKEN=%s\nSUPABASE_PROJECT_REF=%s\n' \
+            "$NEXT_PUBLIC_SUPABASE_URL" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_DB_URL" "$SUPABASE_ACCESS_TOKEN" "$SUPABASE_PROJECT_REF" > .env.local
       - run: npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - run: npx supabase db push --yes
 
@@ -56,13 +53,9 @@ SUPABASE_PROJECT_REF=%s
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: |
-          printf 'NEXT_PUBLIC_SUPABASE_URL=%s
-NEXT_PUBLIC_SUPABASE_ANON_KEY=%s
-SUPABASE_SERVICE_ROLE_KEY=%s
-SUPABASE_DB_URL=%s
-SUPABASE_ACCESS_TOKEN=%s
-SUPABASE_PROJECT_REF=%s
-'             "$NEXT_PUBLIC_SUPABASE_URL" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_SERVICE_ROLE_KEY"             "$SUPABASE_DB_URL" "$SUPABASE_ACCESS_TOKEN" "$SUPABASE_PROJECT_REF" > .env.local
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_ANON_KEY=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\nSUPABASE_DB_URL=%s\nSUPABASE_ACCESS_TOKEN=%s\nSUPABASE_PROJECT_REF=%s\n' \
+            "$NEXT_PUBLIC_SUPABASE_URL" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_DB_URL" "$SUPABASE_ACCESS_TOKEN" "$SUPABASE_PROJECT_REF" > .env.local
       - run: npm run test:db -- --shard=${{ matrix.shard }}/3
 
   e2e:

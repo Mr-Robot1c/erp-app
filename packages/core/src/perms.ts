@@ -74,7 +74,7 @@ export const PERMS: Record<Role, PermSet> = {
     actions: ["approve", "reject", "exp", "adv"],
   },
   accountant: {
-    views: ["dash", "tasks", "acc", "sales", "buy", "int", "audit"],
+    views: ["dash", "tasks", "acc", "sales", "buy", "int", "master", "audit"],
     actions: ["rcpt", "pay", "issue", "payexp", "settle", "approve", "reject", "exp", "adv", "produce"],
   },
   chief_accountant: {

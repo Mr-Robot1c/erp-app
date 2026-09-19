@@ -18,11 +18,31 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
   {
     name: "POST /api/master/partners",
     call: (token) => post("/api/master/partners", token, { code: `P${randomUUID().slice(0, 8)}`, name: "x", kind: "customer" }),
-    allowed: ["admin"],
+    allowed: ["admin", "accountant"],
   },
   {
     name: "POST /api/master/items",
     call: (token) => post("/api/master/items", token, { code: `I${randomUUID().slice(0, 8)}`, name: "x", kind: "goods" }),
+    allowed: ["admin", "accountant"],
+  },
+  {
+    name: "POST /api/master/partners/update",
+    call: (token) => post("/api/master/partners/update", token, { id: randomUUID(), name: "x" }),
+    allowed: ["admin", "accountant"],
+  },
+  {
+    name: "POST /api/master/items/update",
+    call: (token) => post("/api/master/items/update", token, { id: randomUUID(), name: "x" }),
+    allowed: ["admin", "accountant"],
+  },
+  {
+    name: "POST /api/master/warehouses",
+    call: (token) => post("/api/master/warehouses", token, { code: `K${randomUUID().slice(0, 8)}`, name: "x" }),
+    allowed: ["admin", "accountant"],
+  },
+  {
+    name: "POST /api/master/remove-sample",
+    call: (token) => post("/api/master/remove-sample", token, {}),
     allowed: ["admin"],
   },
   {
