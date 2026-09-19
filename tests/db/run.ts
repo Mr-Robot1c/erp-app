@@ -48,7 +48,7 @@ async function main() {
   try {
     await waitReady();
     console.log("[test:db] chạy vitest...");
-    const r = spawnSync("npx", ["vitest", "run", "--config", "tests/db/vitest.config.ts"], {
+    const r = spawnSync("npx", ["vitest", "run", "--config", "tests/db/vitest.config.ts", ...process.argv.slice(2)], {
       stdio: "inherit",
       shell: true,
       env: { ...process.env, TEST_BASE_URL: BASE_URL },
