@@ -46,6 +46,12 @@ describe("AC-01 đăng ký doanh nghiệp có dữ liệu mẫu", () => {
 
     const warehouses = await sql`select code from warehouses where tenant_id = ${tenantId}`;
     expect(warehouses.map((w) => w.code)).toEqual(["K1"]);
+
+    // Tồn đầu mẫu (lô 2.3): hàng hoá/vật tư có tồn ở K1, dịch vụ/thành phẩm không.
+    const stockRows = await sql`
+      select i.kind, m.qty from stock_moves m join items i on i.id = m.item_id where m.tenant_id = ${tenantId}`;
+    expect(stockRows.length).toBeGreaterThan(0);
+    expect(stockRows.every((r) => Number(r.qty) === 6 && ["goods", "material"].includes(r.kind as string))).toBe(true);
   });
 
   it("AC-01 withSample=false -> không có đối tác mẫu", async () => {

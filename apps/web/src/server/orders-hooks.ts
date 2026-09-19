@@ -1,10 +1,11 @@
 import type { TransactionSql } from "postgres";
 import { docTax, docTotal, formatMoney } from "@erp/core";
 import type { Member } from "./auth";
+import { fulfil } from "./fulfil";
 import { asObj } from "./json";
 
 /** Việc sau khi đơn bán `confirmed` (lô 2.2, AC-08): chốt tổng, tạo khoản CỌC (không phải phải thu hoá đơn),
- * giao việc cho kho "Đáp ứng đơn". Giữ tồn / sinh yêu cầu mua-lệnh SX nối vào ở lô 2.3 (fulfil). */
+ * giao việc cho kho "Đáp ứng đơn". Giữ tồn / sinh yêu cầu mua-lệnh SX: `fulfil` (lô 2.3). */
 export async function orderAfterConfirm(s: TransactionSql, m: Member, so: Record<string, unknown>) {
   const orderId = so.id as string;
   const docNo = so.doc_no as string;
@@ -32,4 +33,6 @@ export async function orderAfterConfirm(s: TransactionSql, m: Member, so: Record
   await s`
     insert into tasks (tenant_id, role, text, document_id)
     values (${m.tenantId}, 'warehouse', ${`Đáp ứng đơn ${docNo}`}, ${orderId})`;
+
+  await fulfil(s, m, orderId); // giữ tồn phần có sẵn; thiếu thì tự sinh yêu cầu mua / lệnh sản xuất (lô 2.3, AC-10)
 }

@@ -53,6 +53,14 @@ export async function registerTenant(
   for (const w of seed.warehouses) {
     await s`insert into warehouses (tenant_id, code, name) values (${tenant.id}, ${w.code}, ${w.name})`;
   }
+  // Tồn đầu mẫu (chỉ khi nạp dữ liệu mẫu) — đủ để bấm thử giữ tồn/xuất kho ngay (lô 2.3).
+  for (const mv of seed.openingMoves) {
+    await s`
+      insert into stock_moves (tenant_id, item_id, warehouse_id, qty, unit_cost)
+      select ${tenant.id}, i.id, w.id, ${mv.qty}, ${mv.cost}
+      from items i, warehouses w
+      where i.tenant_id = ${tenant.id} and i.code = ${mv.itemCode} and w.tenant_id = ${tenant.id} and w.code = ${mv.warehouseCode}`;
+  }
   for (const a of seed.accounts) {
     await s`insert into accounts (tenant_id, code, name) values (${tenant.id}, ${a.code}, ${a.name})`;
   }

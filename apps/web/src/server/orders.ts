@@ -10,6 +10,7 @@ import {
 import type { Member } from "./auth";
 import { audit } from "./db";
 import { createDocument, setStatus } from "./documents";
+import { fulfil } from "./fulfil";
 import { afterConfirm } from "./hooks";
 import { asObj } from "./json";
 
@@ -98,4 +99,13 @@ export async function confirmOrder(s: TransactionSql, m: Member, orderId: string
     values (${m.tenantId}, ${chain[0]}, ${approvalTaskText("SO", pending.doc_no as string)}, ${orderId})`;
   await audit(s, m.tenantId, m.displayName || m.userId, "order.pending", pending.doc_no as string, "chờ duyệt công nợ");
   return pending;
+}
+
+/** Kho bấm "đáp ứng lại" sau khi có hàng (cũng gọi tự động ở GĐ3 khi nhập kho): giữ thêm phần đã có, không sinh trùng yêu cầu mua. */
+export async function refulfilOrder(s: TransactionSql, m: Member, orderId: string) {
+  const [so] = await s`
+    select status from documents where id = ${orderId} and tenant_id = ${m.tenantId} and doc_type = 'SO' for update`;
+  if (!so) throw new AppError("not_found", "Không tìm thấy đơn bán");
+  if (!["confirmed", "partial"].includes(so.status as string)) throw new AppError("state_invalid", "Đơn chưa xác nhận hoặc đã đóng");
+  return fulfil(s, m, orderId);
 }
