@@ -21,7 +21,7 @@ export default async function SalesPage() {
     supabase
       .from("documents")
       .select(DOC_COLUMNS)
-      .in("doc_type", ["QUOTE"])
+      .in("doc_type", ["QUOTE", "SO"])
       .order("created_at", { ascending: false })
       .limit(300),
   ]);

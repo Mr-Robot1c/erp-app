@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { STATUSES, STATUS_LABEL, can, formatMoney, type DocStatus, type Role } from "@erp/core";
 import { DocDetail, type DocRow } from "./doc-detail";
@@ -10,7 +10,10 @@ import { PartnerPicker, type PartnerOption } from "./partner-picker";
 type PartnerRow = PartnerOption & { kind: string };
 type Tab = { key: string; label: string };
 
-const TABS: Tab[] = [{ key: "QUOTE", label: "Báo giá" }];
+const TABS: Tab[] = [
+  { key: "QUOTE", label: "Báo giá" },
+  { key: "SO", label: "Đơn bán" },
+];
 
 const VI_ERR: Record<string, string> = {
   forbidden: "Bạn không có quyền làm việc này (hoặc chưa tới lượt của bạn).",
@@ -165,12 +168,36 @@ export function SalesBoard({
           itemName={itemName}
           onClose={() => setOpenId(null)}
           onChanged={() => router.refresh()}
-          extraInfo={(d) => (d.meta.validTo ? [["Hiệu lực đến", d.meta.validTo]] : [])}
-          actions={(d, reload) => <QuoteActions doc={d} role={role} userId={userId} reload={reload} />}
+          openByNo={(no) => setOpenId(docs.find((x) => x.doc_no === no)?.id ?? openId)}
+          extraInfo={extraInfo}
+          actions={(d, reload) => (
+            <DocActions
+              doc={d}
+              role={role}
+              userId={userId}
+              reload={reload}
+              openDoc={(id) => {
+                router.refresh();
+                setOpenId(id);
+              }}
+            />
+          )}
         />
       )}
     </div>
   );
+}
+
+function extraInfo(d: DocRow): [string, ReactNode][] {
+  const out: [string, ReactNode][] = [];
+  if (d.meta.validTo) out.push(["Hiệu lực đến", d.meta.validTo]);
+  if (d.doc_type === "SO") {
+    out.push(["Điều khoản", d.meta.terms === "credit" ? "Công nợ" : "Trả khi giao"]);
+    if (Number(d.meta.depositPct) > 0) out.push(["Cọc", `${d.meta.depositPct}%`]);
+    if (d.meta.total) out.push(["Tổng gồm thuế", formatMoney(Number(d.meta.total))]);
+    if (d.meta.note) out.push(["Ghi chú", String(d.meta.note)]);
+  }
+  return out;
 }
 
 function QuoteForm({
@@ -225,45 +252,73 @@ function QuoteForm({
   );
 }
 
-/** Nút hành động trên chi tiết báo giá — chỉ hiện nút hợp vai + hợp trạng thái (03 mục E). */
-function QuoteActions({ doc, role, userId, reload }: { doc: DocRow; role: Role; userId: string; reload: () => void }) {
+/** Nút hành động trên chi tiết chứng từ — chỉ hiện nút hợp vai + hợp trạng thái (03 mục E). */
+function DocActions({
+  doc,
+  role,
+  userId,
+  reload,
+  openDoc,
+}: {
+  doc: DocRow;
+  role: Role;
+  userId: string;
+  reload: () => void;
+  openDoc: (id: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [toOrder, setToOrder] = useState(false);
+  const [terms, setTerms] = useState<"cash" | "credit">("cash");
+  const [depositPct, setDepositPct] = useState("0");
+  const [orderKey] = useState(newKey);
 
-  async function run(url: string, body: unknown) {
+  async function run(url: string, body: unknown, key?: string) {
     setBusy(true);
     setErr("");
-    const res = await callApi(url, body);
+    const res = await callApi(url, body, key);
     setBusy(false);
-    if (!res.ok) return setErr(VI_ERR[res.error.code] ?? res.error.message);
+    if (!res.ok) {
+      setErr(VI_ERR[res.error.code] ?? res.error.message);
+      return null;
+    }
     setRejecting(false);
     setReason("");
     reload();
+    return res.data;
   }
 
   const chain = doc.meta.chain ?? [];
   const done = doc.meta.approvals?.length ?? 0;
   const myTurn = doc.status === "pending" && (role === "admin" || role === chain[done]) && userId !== doc.created_by;
+  const isQuote = doc.doc_type === "QUOTE";
+  const isOrder = doc.doc_type === "SO";
+  const notExpired = !doc.meta.validTo || doc.meta.validTo >= new Date().toISOString().slice(0, 10);
 
   return (
     <div className="w-full">
       <div className="flex flex-wrap gap-2">
-        {doc.status === "draft" && can(role, "cq") && (
+        {isQuote && doc.status === "draft" && can(role, "cq") && (
           <button id="btn-confirm-quote" className={btnPrimary} disabled={busy} onClick={() => void run("/api/quotes/confirm", { quoteId: doc.id })}>
             Gửi khách
           </button>
         )}
+        {isQuote && doc.status === "confirmed" && notExpired && can(role, "q2o") && (
+          <button id="btn-to-order" className={btnPrimary} disabled={busy} onClick={() => setToOrder(!toOrder)}>
+            Chuyển thành đơn
+          </button>
+        )}
+        {isOrder && doc.status === "draft" && can(role, "cso") && (
+          <button id="btn-confirm-order" className={btnPrimary} disabled={busy} onClick={() => void run("/api/orders/confirm", { orderId: doc.id })}>
+            Xác nhận đơn
+          </button>
+        )}
         {myTurn && (
           <>
-            <button
-              id="btn-approve"
-              className={btnPrimary}
-              disabled={busy}
-              onClick={() => void run("/api/approvals/decide", { docId: doc.id, decision: "approve" })}
-            >
-              Duyệt giá
+            <button id="btn-approve" className={btnPrimary} disabled={busy} onClick={() => void run("/api/approvals/decide", { docId: doc.id, decision: "approve" })}>
+              {isOrder ? "Duyệt công nợ" : "Duyệt giá"}
             </button>
             <button id="btn-reject" className={btnGhost} disabled={busy} onClick={() => setRejecting(!rejecting)}>
               Từ chối
@@ -271,6 +326,36 @@ function QuoteActions({ doc, role, userId, reload }: { doc: DocRow; role: Role; 
           </>
         )}
       </div>
+
+      {toOrder && (
+        <div className="mt-2 grid max-w-md grid-cols-2 gap-2">
+          <div>
+            <label className="mb-0.5 block text-[11.5px] text-[var(--ink2)]">Điều khoản</label>
+            <select id="order-terms" className={inputCls} value={terms} onChange={(e) => setTerms(e.target.value as "cash" | "credit")}>
+              <option value="cash">Trả khi giao</option>
+              <option value="credit">Công nợ</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-0.5 block text-[11.5px] text-[var(--ink2)]">Cọc (%)</label>
+            <input id="order-deposit" className={inputCls} type="number" min={0} max={100} value={depositPct} onChange={(e) => setDepositPct(e.target.value)} />
+          </div>
+          <div className="col-span-2">
+            <button
+              id="btn-create-order"
+              className={btnPrimary}
+              disabled={busy}
+              onClick={async () => {
+                const d = await run("/api/quotes/to-order", { quoteId: doc.id, terms, depositPct: Number(depositPct) || 0 }, orderKey);
+                if (d) openDoc(d.id as string);
+              }}
+            >
+              Tạo đơn
+            </button>
+          </div>
+        </div>
+      )}
+
       {rejecting && (
         <div className="mt-2 flex gap-2">
           <input className={inputCls} placeholder="Lý do từ chối" value={reason} onChange={(e) => setReason(e.target.value)} />

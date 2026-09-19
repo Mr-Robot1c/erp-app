@@ -35,6 +35,23 @@ export async function purgeTenant(tenantId: string) {
   });
 }
 
+/** signIn có nhớ phiên theo user: cùng 1 user gọi nhiều lần chỉ đăng nhập MỘT lần (phiên sống 1 giờ, test chạy
+ * vài phút) — tránh chạm giới hạn tốc độ đăng nhập của Supabase Auth ("Request rate limit reached") khi bộ
+ * test lớn dần (isolation gọi signIn hàng chục lần cho cùng 1 user). */
+function makeSignIn(email: string) {
+  let cached: Promise<{ client: ReturnType<typeof createClient>; accessToken: string }> | null = null;
+  return () => {
+    cached ??= (async () => {
+      const client = createClient(SUPABASE_URL, ANON_KEY);
+      const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
+      if (error || !data.session) throw error ?? new Error("signIn thất bại");
+      return { client, accessToken: data.session.access_token };
+    })();
+    cached.catch(() => (cached = null));
+    return cached;
+  };
+}
+
 export type TestTenant = {
   tenantId: string;
   userId: string;
@@ -71,12 +88,7 @@ export async function createTestTenant(opts: { role?: Role } = {}): Promise<Test
     tenantId,
     userId,
     email,
-    async signIn() {
-      const client = createClient(SUPABASE_URL, ANON_KEY);
-      const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
-      if (error || !data.session) throw error ?? new Error("signIn thất bại");
-      return { client, accessToken: data.session.access_token };
-    },
+    signIn: makeSignIn(email),
     async setRole(role: Role) {
       await sql`update memberships set role = ${role} where user_id = ${userId}`;
     },
@@ -120,12 +132,7 @@ export async function addTenantMember(tenantId: string, role: Role): Promise<Ten
     userId,
     email,
     role,
-    async signIn() {
-      const client = createClient(SUPABASE_URL, ANON_KEY);
-      const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
-      if (error || !data.session) throw error ?? new Error("signIn thất bại");
-      return { client, accessToken: data.session.access_token };
-    },
+    signIn: makeSignIn(email),
     async cleanup() {
       await admin.auth.admin.deleteUser(userId);
     },
@@ -155,12 +162,7 @@ export async function createBareUser(): Promise<BareUser> {
   return {
     userId,
     email,
-    async signIn() {
-      const client = createClient(SUPABASE_URL, ANON_KEY);
-      const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
-      if (error || !data.session) throw error ?? new Error("signIn thất bại");
-      return { client, accessToken: data.session.access_token };
-    },
+    signIn: makeSignIn(email),
     async cleanup() {
       // Test có thể đã tự đăng ký tạo tenant — xoá cả tenant đó (van purge) nếu có, rồi xoá user.
       const [m] = await sql`select tenant_id from memberships where user_id = ${userId}`;
@@ -296,4 +298,43 @@ export async function listTenantScopedTables(): Promise<string[]> {
 export function apiUrl(path: string) {
   const base = process.env.TEST_BASE_URL ?? "http://localhost:3100";
   return base + path;
+}
+
+/** Fixture đủ bộ bảng GĐ2 (0009) cho 1 tenant — dùng ở isolation.test.ts (fixture dương tính từng bảng/view). */
+export async function createGd2Fixtures(tenantId: string, documentId: string, tag: string) {
+  const partnerId = await createPartner(tenantId, `G2P${tag}`);
+  const itemId = await createItem(tenantId, `G2I${tag}`, { price: 1000 });
+  const warehouseId = await createWarehouse(tenantId, `G2W${tag}`);
+
+  const [move] = await sql`
+    insert into stock_moves (tenant_id, item_id, warehouse_id, qty, unit_cost, document_id)
+    values (${tenantId}, ${itemId}, ${warehouseId}, 5, 100, ${documentId}) returning id`;
+  const [resv] = await sql`
+    insert into reservations (tenant_id, document_id, line_no, item_id, qty)
+    values (${tenantId}, ${documentId}, 1, ${itemId}, 2) returning id`;
+  const [recv] = await sql`
+    insert into receivables (tenant_id, kind, document_id, partner_id, amount)
+    values (${tenantId}, 'invoice', ${documentId}, ${partnerId}, 1000) returning id`;
+  const [alloc] = await sql`
+    insert into receipt_allocations (tenant_id, receipt_id, receivable_id, amount)
+    values (${tenantId}, ${documentId}, ${recv.id}, 100) returning id`;
+  await sql`insert into partner_advances (tenant_id, partner_id, amount) values (${tenantId}, ${partnerId}, 50)`;
+  const bankRef = `seed-bank-${tag}`;
+  await sql`insert into bank_txns (tenant_id, bank_ref, receipt_id) values (${tenantId}, ${bankRef}, ${documentId})`;
+  const [entry] = await sql`
+    insert into journal_entries (tenant_id, entry_date, document_id, memo)
+    values (${tenantId}, current_date, ${documentId}, 'seed') returning id`;
+  const lineId = await sql.begin(async (t) => {
+    const [l] = await t`
+      insert into journal_lines (tenant_id, entry_id, account_code, debit, credit)
+      values (${tenantId}, ${entry.id}, '111', 100, 0) returning id`;
+    await t`insert into journal_lines (tenant_id, entry_id, account_code, debit, credit)
+            values (${tenantId}, ${entry.id}, '511', 0, 100)`;
+    return l.id;
+  });
+  return {
+    partnerId, itemId, warehouseId,
+    stockMoveId: move.id as string, reservationId: resv.id as string, receivableId: recv.id as string,
+    allocId: alloc.id as string, bankRef, entryId: entry.id as string, journalLineId: String(lineId),
+  };
 }

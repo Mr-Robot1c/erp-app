@@ -14,6 +14,7 @@ export type DocRow = {
   partner_id: string | null;
   created_by: string | null;
   created_by_name: string;
+  refs: string[];
   meta: DocMeta;
 };
 /** meta là trường vận hành của chứng từ (totals, chain, approvals, validTo, ...) — lô nào thêm khoá thì bổ sung ở đây. */
@@ -22,6 +23,10 @@ export type DocMeta = {
   validTo?: string;
   chain?: Role[];
   approvals?: unknown[];
+  terms?: string;
+  depositPct?: number;
+  total?: number;
+  note?: string;
   [k: string]: unknown;
 };
 type Line = { line_no: number; item_id: string | null; qty: number; price: number; tax_pct: number; meta: DocMeta };
@@ -37,6 +42,7 @@ export function DocDetail({
   onChanged,
   actions,
   extraInfo,
+  openByNo,
 }: {
   doc: DocRow;
   partnerName: (id: string | null) => string;
@@ -45,6 +51,7 @@ export function DocDetail({
   onChanged: () => void;
   actions: (doc: DocRow, reload: () => void) => ReactNode;
   extraInfo?: (doc: DocRow) => [string, ReactNode][];
+  openByNo?: (docNo: string) => void;
 }) {
   const [doc, setDoc] = useState(initial);
   const [lines, setLines] = useState<Line[]>([]);
@@ -89,6 +96,20 @@ export function DocDetail({
     ["Đối tác", partnerName(doc.partner_id)],
     ["Người lập", doc.created_by_name || "—"],
     ...(extraInfo?.(doc) ?? []),
+    ...(doc.refs?.length
+      ? ([
+          [
+            "Tham chiếu",
+            <span key="refs" className="flex flex-wrap gap-2">
+              {doc.refs.map((no) => (
+                <button key={no} type="button" className="font-mono text-[var(--acc)] underline" onClick={() => openByNo?.(no)}>
+                  {no}
+                </button>
+              ))}
+            </span>,
+          ],
+        ] as [string, ReactNode][])
+      : []),
     ["Tổng chưa thuế", <b key="t" className="font-mono tabular-nums">{formatMoney(total)}</b>],
   ];
 

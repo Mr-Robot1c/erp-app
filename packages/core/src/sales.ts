@@ -19,3 +19,11 @@ export function quoteBelowList(lines: { price: number }[], listPrices: number[])
 export function approvalTaskText(docType: DocType, docNo: string): string {
   return docType === "EXP" ? `Duyệt đề xuất chi ${docNo}` : `Duyệt ${DOC_LABEL[docType].name.toLowerCase()} ${docNo}`;
 }
+
+/** Hệ số ước tính thuế khi tính dư nợ tiềm tàng của đơn công nợ chưa giao (port demo creditExposure). */
+export const CREDIT_EXPOSURE_FACTOR = 1.1;
+
+/** Đơn công nợ mới có vượt hạn mức không: dư nợ phải thu + đơn công nợ đang mở + đơn này (đều × hệ số). */
+export function exceedsCreditLimit(p: { receivable: number; openOrdersNet: number; orderNet: number; limit: number }): boolean {
+  return p.receivable + (p.openOrdersNet + p.orderNet) * CREDIT_EXPOSURE_FACTOR > p.limit;
+}

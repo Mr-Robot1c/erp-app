@@ -118,3 +118,13 @@ export type QuoteInput = z.infer<typeof quoteSchema>;
 
 export const quoteIdSchema = z.object({ quoteId: z.string().uuid() });
 export type QuoteIdInput = z.infer<typeof quoteIdSchema>;
+
+export const quoteToOrderSchema = z.object({
+  quoteId: z.string().uuid(),
+  terms: z.enum(["cash", "credit"]),
+  depositPct: z.number().min(0).max(100).default(0),
+});
+export type QuoteToOrderInput = z.infer<typeof quoteToOrderSchema>;
+
+export const orderIdSchema = z.object({ orderId: z.string().uuid() });
+export type OrderIdInput = z.infer<typeof orderIdSchema>;

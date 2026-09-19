@@ -14,6 +14,7 @@ import {
   createIdempotencyKeyFixture,
   createInviteFixture,
   createTaskFixture,
+  createGd2Fixtures,
   listTenantScopedTables,
   apiUrl,
   type TestTenant,
@@ -31,6 +32,9 @@ import {
  * bên dưới quét tới (chỉ quét cột tenant_id) nên không cần thêm vào COVERED_TABLES.
  * Lô 1.2: thêm `invites` (có SELECT policy theo tenant_id, như các bảng thường).
  * Lô 1.3: thêm `tasks` (có SELECT policy theo tenant_id, như các bảng thường).
+ * Lô 2.2 (migration 0009): thêm 8 bảng GĐ2 (stock_moves, reservations, receivables, receipt_allocations,
+ * partner_advances, bank_txns, journal_entries, journal_lines) + 2 VIEW (v_on_hand, v_available —
+ * security_invoker, quét y như bảng: B đọc qua view chỉ thấy dòng của B).
  */
 
 // Bảng CÓ policy SELECT cho client — dùng phép kiểm "thấy dòng mình, không thấy dòng người khác".
@@ -47,6 +51,16 @@ const READ_TABLES = [
   "doc_status_history",
   "invites",
   "tasks",
+  "stock_moves",
+  "reservations",
+  "receivables",
+  "receipt_allocations",
+  "partner_advances",
+  "bank_txns",
+  "journal_entries",
+  "journal_lines",
+  "v_on_hand",
+  "v_available",
 ] as const;
 
 // Bảng RLS bật nhưng KHÔNG policy nào (kể cả SELECT) — client luôn thấy 0 dòng, dù là tenant nào.
@@ -179,6 +193,62 @@ const WRITE_CHECKS: WriteCheck[] = [
     updateColumn: "done",
     updateValue: true,
   },
+  {
+    table: "stock_moves",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, item_id: ids.g2ItemB, warehouse_id: ids.g2WarehouseB, qty: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.stockMoveB }],
+    updateColumn: "qty",
+    updateValue: 999,
+  },
+  {
+    table: "reservations",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, document_id: ids.documentB, line_no: 77, item_id: ids.g2ItemB, qty: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.reservationB }],
+    updateColumn: "qty",
+    updateValue: 999,
+  },
+  {
+    table: "receivables",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, kind: "invoice", partner_id: ids.g2PartnerB, amount: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.receivableB }],
+    updateColumn: "paid",
+    updateValue: 999,
+  },
+  {
+    table: "receipt_allocations",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, receipt_id: ids.documentB, amount: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.allocB }],
+    updateColumn: "amount",
+    updateValue: 999,
+  },
+  {
+    table: "partner_advances",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, partner_id: ids.g2PartnerB, amount: 1 }),
+    ownRowFilter: (_b, ids) => [{ column: "partner_id", value: ids.g2PartnerB }],
+    updateColumn: "amount",
+    updateValue: 999,
+  },
+  {
+    table: "bank_txns",
+    insertPayload: (b, u, ids) => ({ tenant_id: b.tenantId, bank_ref: `hack_${u}`, receipt_id: ids.documentB }),
+    ownRowFilter: (_b, ids) => [{ column: "bank_ref", value: ids.bankRefB }],
+    updateColumn: "bank_ref",
+    updateValue: "hacked",
+  },
+  {
+    table: "journal_entries",
+    insertPayload: (b) => ({ tenant_id: b.tenantId, entry_date: "2099-01-01" }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.entryB }],
+    updateColumn: "memo",
+    updateValue: "bị sửa trái phép",
+  },
+  {
+    table: "journal_lines",
+    insertPayload: (b, _u, ids) => ({ tenant_id: b.tenantId, entry_id: ids.entryB, account_code: "111", debit: 1, credit: 0 }),
+    ownRowFilter: (_b, ids) => [{ column: "id", value: ids.journalLineB }],
+    updateColumn: "account_code",
+    updateValue: "999",
+  },
 ];
 
 describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
@@ -205,6 +275,7 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     await createIdempotencyKeyFixture(a.tenantId, "seed-a");
     await createInviteFixture(a.tenantId, "seed-a@test.local", "staff");
     await createTaskFixture(a.tenantId, docIdA, "admin");
+    await createGd2Fixtures(a.tenantId, docIdA, "A");
 
     fixtureIdsB.partnerB = await createPartner(b.tenantId, "PB0");
     fixtureIdsB.itemB = await createItem(b.tenantId, "IB0");
@@ -221,6 +292,17 @@ describe("tách biệt dữ liệu giữa doanh nghiệp", () => {
     await createIdempotencyKeyFixture(b.tenantId, fixtureIdsB.idempotencyKeyB);
     fixtureIdsB.inviteB = await createInviteFixture(b.tenantId, "seed-b@test.local", "staff");
     fixtureIdsB.taskB = await createTaskFixture(b.tenantId, fixtureIdsB.documentB, "admin");
+    const g2 = await createGd2Fixtures(b.tenantId, fixtureIdsB.documentB, "B");
+    fixtureIdsB.g2ItemB = g2.itemId;
+    fixtureIdsB.g2WarehouseB = g2.warehouseId;
+    fixtureIdsB.g2PartnerB = g2.partnerId;
+    fixtureIdsB.stockMoveB = g2.stockMoveId;
+    fixtureIdsB.reservationB = g2.reservationId;
+    fixtureIdsB.receivableB = g2.receivableId;
+    fixtureIdsB.allocB = g2.allocId;
+    fixtureIdsB.bankRefB = g2.bankRef;
+    fixtureIdsB.entryB = g2.entryId;
+    fixtureIdsB.journalLineB = g2.journalLineId;
   });
 
   afterAll(async () => {
