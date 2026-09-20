@@ -116,7 +116,7 @@ export default async function AccPage() {
         </table>
       </div>
 
-      <h2 className="mt-5 text-sm font-semibold">Chờ khớp tay</h2>
+      <h2 id="cho-khop" className="mt-5 text-sm font-semibold">Chờ khớp tay</h2>
       <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
         <table className="w-full text-sm" id="unmatched-table">
           <tbody>

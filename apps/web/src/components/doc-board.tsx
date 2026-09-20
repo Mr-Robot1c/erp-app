@@ -49,7 +49,12 @@ export function DocBoard({
   partners,
   items,
   docs,
+  initialTab,
+  initialStatus,
 }: {
+  initialTab?: string;
+  /** Pill lọc chọn sẵn (từ thẻ việc): 1 trạng thái hoặc nhiều, cách nhau dấu phẩy. */
+  initialStatus?: string;
   module: BoardModule;
   role: Role;
   userId: string;
@@ -59,8 +64,10 @@ export function DocBoard({
 }) {
   const router = useRouter();
   const TABS = TABS_BY_MODULE[module];
-  const [tab, setTab] = useState(TABS[0].key);
-  const [status, setStatus] = useState<DocStatus | "all">("all");
+  const [tab, setTab] = useState(TABS.some((t) => t.key === initialTab) ? (initialTab as string) : TABS[0].key);
+  const initialSet = (initialStatus ?? "").split(",").filter((x): x is DocStatus => (STATUSES as readonly string[]).includes(x));
+  const [status, setStatus] = useState<DocStatus | "all">(initialSet.length === 1 ? initialSet[0] : "all");
+  const [statusSet, setStatusSet] = useState<DocStatus[]>(initialSet.length > 1 ? initialSet : []);
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [receiving, setReceiving] = useState(false);
@@ -79,7 +86,7 @@ export function DocBoard({
   }, [ofTab]);
   const term = q.trim().toLowerCase();
   const rows = ofTab
-    .filter((d) => status === "all" || d.status === status)
+    .filter((d) => (statusSet.length ? statusSet.includes(d.status) : status === "all" || d.status === status))
     .filter((d) => !term || d.doc_no.toLowerCase().includes(term) || partnerName(d.partner_id).toLowerCase().includes(term));
 
   const open = docs.find((d) => d.id === openId) ?? null;
@@ -136,13 +143,21 @@ export function DocBoard({
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
+        {statusSet.length > 0 && (
+          <span id="status-set" className="rounded-full border border-[var(--acc)] bg-[var(--accs)] px-2.5 py-0.5 text-[12.5px] text-[var(--acc)]">
+            {statusSet.map((x) => STATUS_LABEL[x]).join(" + ")} ({rows.length})
+          </span>
+        )}
         {(["all", ...STATUSES] as const).map((s) => (
           <button
             key={s}
             className={`rounded-full border px-2.5 py-0.5 text-[12.5px] ${
-              status === s ? "border-[var(--acc)] bg-[var(--accs)] text-[var(--acc)]" : "border-[var(--line)] bg-[var(--sf)]"
+              status === s && !statusSet.length ? "border-[var(--acc)] bg-[var(--accs)] text-[var(--acc)]" : "border-[var(--line)] bg-[var(--sf)]"
             }`}
-            onClick={() => setStatus(s)}
+            onClick={() => {
+              setStatusSet([]);
+              setStatus(s);
+            }}
           >
             {s === "all" ? "Tất cả" : STATUS_LABEL[s]} ({counts[s] ?? 0})
           </button>
