@@ -196,6 +196,18 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     call: (token) => post("/api/dashboard/queues", token, {}),
     allowed: [...ROLES], // đọc-đếm: mọi vai trong tenant (staff xem chỉ-đọc)
   },
+  {
+    name: "POST /api/onboarding/opening-balance",
+    call: (token) => post("/api/onboarding/opening-balance", token, { cash: { c111: 1000, c112: 0 } }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "chief_accountant"],
+  },
+  {
+    name: "POST /api/onboarding/remove-sample",
+    call: (token) => post("/api/onboarding/remove-sample", token, {}),
+    allowed: ["admin", "chief_accountant"],
+  },
+  // POST /api/jobs/overdue-sweep KHÔNG vào bảng này: xác thực bằng token việc định kỳ (header x-job-token), không phải phiên người dùng
+  // — đã kiểm ở tests/db/overdue.test.ts (thiếu/sai token → forbidden).
   // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
   // MỘT chứng từ cụ thể (chain[approvals.length] === vai gọi HOẶC admin), không phải 1 danh sách
   // vai tĩnh theo endpoint như các case trên — cùng lý do /api/team/accept cũng không có ở đây.

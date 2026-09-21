@@ -5,6 +5,9 @@ import dotenv from "dotenv";
 // Local: nạp .env.local (root). CI: biến môi trường đã có sẵn từ GitHub Actions.
 if (existsSync(".env.local")) dotenv.config({ path: ".env.local" });
 
+// Token của job quét công nợ cho test: server (next start) kế thừa biến môi trường này; test đọc cùng giá trị.
+process.env.JOB_TOKEN ??= "test-job-token";
+
 const PORT = 3100;
 const BASE_URL = `http://localhost:${PORT}`;
 

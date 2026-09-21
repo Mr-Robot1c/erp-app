@@ -1,0 +1,22 @@
+name: overdue-sweep
+# Quét công nợ quá hạn hằng ngày (S04, lô 4.2): nhắc kinh doanh + kế toán, chặn bán công nợ khách vượt hạn mức.
+# Cần secret JOB_TOKEN (trùng biến môi trường JOB_TOKEN của Vercel) — chưa cấu hình thì bước gọi tự bỏ qua (xem playbook/01 mục D).
+on:
+  schedule:
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gọi endpoint quét công nợ
+        env:
+          JOB_TOKEN: ${{ secrets.JOB_TOKEN }}
+          APP_URL: ${{ vars.APP_URL || 'https://erpsdvico-a-644f.vercel.app' }}
+        run: |
+          if [ -z "$JOB_TOKEN" ]; then
+            echo "::warning::Chưa có secret JOB_TOKEN — bỏ qua quét công nợ."
+            exit 0
+          fi
+          curl -fsS -X POST "$APP_URL/api/jobs/overdue-sweep" -H "x-job-token: $JOB_TOKEN" -H "content-type: application/json" -d '{}'

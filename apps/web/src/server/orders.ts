@@ -73,12 +73,13 @@ export async function confirmOrder(s: TransactionSql, m: Member, orderId: string
 
   let needsApproval = false;
   if (meta.terms === "credit") {
-    const [p] = await s<{ credit_limit: string }[]>`
-      select credit_limit from partners where id = ${so.partner_id as string} and tenant_id = ${m.tenantId} for update`;
+    const [p] = await s<{ credit_limit: string; blocked: boolean }[]>`
+      select credit_limit, blocked from partners where id = ${so.partner_id as string} and tenant_id = ${m.tenantId} for update`;
     const c = await creditNumbers(s, m.tenantId, so.partner_id as string);
     const [{ net }] = await s<{ net: string }[]>`
       select coalesce(sum(round(qty * price)), 0) as net from document_lines where document_id = ${orderId} and tenant_id = ${m.tenantId}`;
     needsApproval =
+      p.blocked || // khách đang bị chặn bán công nợ (job quét quá hạn + vượt hạn mức)
       c.overdue ||
       exceedsCreditLimit({ receivable: c.receivable, openOrdersNet: c.openOrdersNet, orderNet: Number(net), limit: Number(p.credit_limit) });
   }

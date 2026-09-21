@@ -70,3 +70,24 @@ export const postPurchaseReturn = (amount: number, invAccount: string): PostingL
   ["331", amount, 0],
   [invAccount, 0, amount],
 ];
+
+/** Số dư đầu kỳ (lô 4.2, AC-04): MỘT bút toán cân — Nợ 156|152 (tồn) + 131 (phải thu) + 111/112 (tiền); Có 331 (phải trả);
+ * phần chênh là vốn chủ sở hữu 411 (Có nếu tài sản > nợ phải trả, Nợ nếu ngược lại). */
+export const postOpeningBalance = (p: {
+  stockByAccount: Record<string, number>;
+  receivable: number;
+  payable: number;
+  c111: number;
+  c112: number;
+}): PostingLine[] => {
+  const lines: PostingLine[] = [];
+  for (const [acc, v] of Object.entries(p.stockByAccount)) if (v) lines.push([acc, v, 0]);
+  if (p.receivable) lines.push(["131", p.receivable, 0]);
+  if (p.c111) lines.push(["111", p.c111, 0]);
+  if (p.c112) lines.push(["112", p.c112, 0]);
+  if (p.payable) lines.push(["331", 0, p.payable]);
+  const net = lines.reduce((s, l) => s + l[1] - l[2], 0);
+  if (net > 0) lines.push(["411", 0, net]);
+  else if (net < 0) lines.push(["411", -net, 0]);
+  return lines;
+};

@@ -276,3 +276,17 @@ export const purchaseReturnSchema = z.object({
 export type PurchaseReturnInput = z.infer<typeof purchaseReturnSchema>;
 
 export const cancelDocSchema = z.object({ docId: z.string().uuid() });
+
+const money = z.number().int().nonnegative();
+export const openingBalanceSchema = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD").optional(),
+    stock: z
+      .array(z.object({ itemCode: z.string().min(1), warehouseCode: z.string().min(1), qty: z.number().positive("Số lượng phải lớn hơn 0"), unitCost: money }))
+      .default([]),
+    receivables: z.array(z.object({ partnerCode: z.string().min(1), amount: z.number().int().positive("Số tiền phải lớn hơn 0") })).default([]),
+    payables: z.array(z.object({ partnerCode: z.string().min(1), amount: z.number().int().positive("Số tiền phải lớn hơn 0") })).default([]),
+    cash: z.object({ c111: money.default(0), c112: money.default(0) }).default({ c111: 0, c112: 0 }),
+  })
+  .refine((v) => v.stock.length + v.receivables.length + v.payables.length > 0 || v.cash.c111 + v.cash.c112 > 0, { message: "Tệp số dư đang rỗng" });
+export type OpeningBalanceInput = z.infer<typeof openingBalanceSchema>;
