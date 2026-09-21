@@ -5,7 +5,7 @@ import type { TransactionSql } from "postgres";
 import { AppError } from "@erp/core";
 
 type ApiOk<T> = { ok: true; data: T };
-type ApiErr = { ok: false; error: { code: string; message: string } };
+type ApiErr = { ok: false; error: { code: string; message: string } & Record<string, unknown> };
 
 function isPostgresUniqueViolation(e: unknown): boolean {
   return typeof e === "object" && e !== null && "code" in e && (e as { code?: unknown }).code === "23505";
@@ -79,7 +79,7 @@ export function handle<T>(fn: (req: Request) => Promise<T>, opts?: { idempotency
       if (e instanceof AppError) {
         const status = e.code === "unauthenticated" ? 401 : e.code === "forbidden" ? 403 : 200;
         return NextResponse.json(
-          { ok: false, error: { code: e.code, message: e.message } },
+          { ok: false, error: { code: e.code, message: e.message, ...(e.extra ?? {}) } },
           { status },
         );
       }

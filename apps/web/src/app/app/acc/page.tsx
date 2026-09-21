@@ -4,12 +4,13 @@ import Link from "next/link";
 import { createClient } from "@/server/supabase";
 import { BalanceView, LedgerView, PartnerLedgerView } from "@/components/ledger-views";
 import { OpeningBalanceForm } from "@/components/opening-balance-form";
+import { JournalAdjustForm, MatchReceiptActions, PeriodManager } from "@/components/period-tools";
 
 /** Công nợ đơn giản (lô 2.5): phải thu còn mở, tiền ứng trước, và hàng chờ khớp tay (phiếu thu không mã / dư thành ứng trước).
  * Báo cáo công nợ đầy đủ (tuổi nợ, nhắc, chặn) ở GĐ4. */
 export default async function AccPage({ searchParams }: { searchParams: Promise<{ view?: string; ym?: string; account?: string; partner?: string }> }) {
   const params = await searchParams;
-  const view = ("debt ledger balance partner opening".split(" ").includes(params.view ?? "") ? params.view : "debt") as "debt" | "ledger" | "balance" | "partner" | "opening";
+  const view = ("debt ledger balance partner opening period adjust".split(" ").includes(params.view ?? "") ? params.view : "debt") as "debt" | "ledger" | "balance" | "partner" | "opening" | "period" | "adjust";
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,6 +29,15 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
   ]);
   const openPay = (pays ?? []).filter((p) => Number(p.amount) - Number(p.paid) > 0);
   const canOpening = membership.role === "admin" || membership.role === "chief_accountant";
+  const canMatch = canOpening || membership.role === "accountant";
+  const { data: periods } = await supabase.from("periods").select("ym, status");
+  const lockedPeriods = (periods ?? []).filter((p) => p.status === "locked").map((p) => p.ym as string);
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() - i);
+    return d.toISOString().slice(0, 7);
+  });
   const { count: docCount } = await supabase.from("documents").select("*", { count: "exact", head: true });
   const blockedPartners = new Set((partners ?? []).filter((p) => p.blocked).map((p) => p.id as string));
   const pname = new Map((partners ?? []).map((p) => [p.id as string, p.name as string]));
@@ -51,7 +61,7 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
             ["ledger", "Sổ cái"],
             ["balance", "Số dư tài khoản"],
             ["partner", "Sổ chi tiết đối tác"],
-            ...(canOpening ? ([["opening", "Số dư đầu kỳ"]] as const) : []),
+            ...(canOpening ? ([["opening", "Số dư đầu kỳ"], ["adjust", "Bút toán điều chỉnh"], ["period", "Khoá kỳ"]] as const) : []),
           ] as const
         ).map(([key, label]) => (
           <Link
@@ -70,6 +80,8 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
       {view === "ledger" && <LedgerView sb={supabase} params={params} />}
       {view === "balance" && <BalanceView sb={supabase} params={params} />}
       {view === "partner" && <PartnerLedgerView sb={supabase} params={params} />}
+      {view === "adjust" && canOpening && <JournalAdjustForm />}
+      {view === "period" && canOpening && <PeriodManager months={months} locked={lockedPeriods} />}
       {view === "opening" && canOpening && <OpeningBalanceForm locked={(docCount ?? 0) > 0} />}
       {view === "debt" && (
         <>
@@ -176,6 +188,16 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
                   <td className="px-3 py-2">{pname.get((r?.partner_id as string) ?? "") ?? "—"}</td>
                   <td className="px-3 py-2">{r?.doc_date ?? ""}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(u.amount))}</td>
+                  {canMatch && (
+                    <td className="px-3 py-2">
+                      <MatchReceiptActions
+                        receiptId={u.receipt_id as string}
+                        options={open
+                          .filter((o) => o.partner_id === r?.partner_id && (o.kind === "invoice" || o.kind === "deposit"))
+                          .map((o) => ({ id: o.id as string, label: `${KIND[o.kind as string] ?? ""} còn ${formatMoney(Number(o.amount) - Number(o.paid))}` }))}
+                      />
+                    </td>
+                  )}
                 </tr>
               );
             })}

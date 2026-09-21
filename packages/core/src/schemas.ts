@@ -290,3 +290,17 @@ export const openingBalanceSchema = z
   })
   .refine((v) => v.stock.length + v.receivables.length + v.payables.length > 0 || v.cash.c111 + v.cash.c112 > 0, { message: "Tệp số dư đang rỗng" });
 export type OpeningBalanceInput = z.infer<typeof openingBalanceSchema>;
+
+export const journalAdjustSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày sai định dạng YYYY-MM-DD"),
+  memo: z.string().trim().min(1, "Thiếu diễn giải"),
+  lines: z
+    .array(z.tuple([z.string().regex(/^\d{3,5}$/, "Mã tài khoản gồm 3–5 chữ số"), z.number().int().nonnegative(), z.number().int().nonnegative()]))
+    .min(2, "Bút toán cần ít nhất 2 dòng"),
+});
+export type JournalAdjustInput = z.infer<typeof journalAdjustSchema>;
+
+export const lockPeriodSchema = z.object({ ym: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Kỳ phải dạng YYYY-MM") });
+
+export const matchReceiptSchema = z.object({ receiptId: z.string().uuid(), receivableId: z.string().uuid().optional() });
+export type MatchReceiptInput = z.infer<typeof matchReceiptSchema>;

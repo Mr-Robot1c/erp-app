@@ -16,8 +16,11 @@ export type ErrorCode = (typeof ERROR_CODES)[number];
 
 export class AppError extends Error {
   code: ErrorCode;
-  constructor(code: ErrorCode, message?: string) {
+  /** Chi tiết máy đọc được kèm lỗi (vd `suggestedDate` của period_locked, `blockers` của khoá kỳ) — trả nguyên trong `error`. */
+  extra?: Record<string, unknown>;
+  constructor(code: ErrorCode, message?: string, extra?: Record<string, unknown>) {
     super(message ?? code);
     this.code = code;
+    this.extra = extra;
   }
 }

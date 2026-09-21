@@ -68,9 +68,22 @@ export async function setStatus(s: TransactionSql, m: Member, docId: string, to:
   return updated;
 }
 
-/** Kỳ khoá chặn ghi (bảng periods đầy đủ ở GĐ4; mặc định open khi chưa có dòng cho tháng đó). */
+/** Kỳ khoá chặn ghi (lô 4.3, AC-32): ngày rơi vào kỳ đã khoá → `period_locked` kèm `suggestedDate` = ngày 1 của kỳ MỞ sớm nhất
+ * sau ngày đó (và `suggestedPeriod` dạng YYYY-MM) để người dùng ghi lại vào kỳ đó. */
 export async function assertPeriodOpen(s: TransactionSql, tenantId: string, date: string) {
   const ym = date.slice(0, 7);
   const [period] = await s`select status from periods where tenant_id = ${tenantId} and ym = ${ym}`;
-  if (period?.status === "locked") throw new AppError("period_locked", `Kỳ ${ym} đã khoá`);
+  if (period?.status !== "locked") return;
+  const locked = new Set((await s<{ ym: string }[]>`select ym from periods where tenant_id = ${tenantId} and status = 'locked'`).map((r) => r.ym));
+  let y = Number(ym.slice(0, 4));
+  let m = Number(ym.slice(5, 7));
+  do {
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  } while (locked.has(`${y}-${String(m).padStart(2, "0")}`));
+  const suggestedPeriod = `${y}-${String(m).padStart(2, "0")}`;
+  throw new AppError("period_locked", `Kỳ ${ym} đã khoá — ghi vào kỳ ${suggestedPeriod}`, { suggestedDate: `${suggestedPeriod}-01`, suggestedPeriod });
 }

@@ -206,6 +206,22 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     call: (token) => post("/api/onboarding/remove-sample", token, {}),
     allowed: ["admin", "chief_accountant"],
   },
+  {
+    name: "POST /api/acc/journal-adjust",
+    call: (token) =>
+      post("/api/acc/journal-adjust", token, { date: "2000-01-15", memo: "CASES", lines: [["111", 100, 0], ["411", 0, 100]] }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "chief_accountant"],
+  },
+  {
+    name: "POST /api/acc/lock-period",
+    call: (token) => post("/api/acc/lock-period", token, { ym: "2099-01" }), // tương lai → invalid_argument cho vai được phép, không khoá thật
+    allowed: ["admin", "chief_accountant"],
+  },
+  {
+    name: "POST /api/receipts/match",
+    call: (token) => post("/api/receipts/match", token, { receiptId: randomUUID() }, { "idempotency-key": randomUUID() }),
+    allowed: ["admin", "accountant", "chief_accountant"],
+  },
   // POST /api/jobs/overdue-sweep KHÔNG vào bảng này: xác thực bằng token việc định kỳ (header x-job-token), không phải phiên người dùng
   // — đã kiểm ở tests/db/overdue.test.ts (thiếu/sai token → forbidden).
   // POST /api/approvals/decide KHÔNG vào bảng này: quyền của nó phụ thuộc trạng thái/lượt của
