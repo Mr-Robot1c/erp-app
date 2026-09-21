@@ -3,6 +3,7 @@ import { formatMoney } from "@erp/core";
 import Link from "next/link";
 import { createClient } from "@/server/supabase";
 import { BalanceView, LedgerView, PartnerLedgerView } from "@/components/ledger-views";
+import { ExportButton } from "@/components/export-button";
 import { OpeningBalanceForm } from "@/components/opening-balance-form";
 import { JournalAdjustForm, MatchReceiptActions, PeriodManager } from "@/components/period-tools";
 
@@ -85,7 +86,10 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
       {view === "opening" && canOpening && <OpeningBalanceForm locked={(docCount ?? 0) > 0} />}
       {view === "debt" && (
         <>
-          <h2 className="mt-4 text-sm font-semibold">Tuổi nợ phải thu</h2>
+          <div className="mt-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Tuổi nợ phải thu</h2>
+            <ExportButton report="ar" label="Xuất Excel công nợ" />
+          </div>
           <AgingTable open={open} pname={pname} blocked={blockedPartners} today={new Date().toISOString().slice(0, 10)} />
 
 

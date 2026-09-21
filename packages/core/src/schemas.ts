@@ -304,3 +304,8 @@ export const lockPeriodSchema = z.object({ ym: z.string().regex(/^\d{4}-(0[1-9]|
 
 export const matchReceiptSchema = z.object({ receiptId: z.string().uuid(), receivableId: z.string().uuid().optional() });
 export type MatchReceiptInput = z.infer<typeof matchReceiptSchema>;
+
+export const exportReportSchema = z.object({
+  report: z.enum(["gl", "balance", "ar"]),
+  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Kỳ phải dạng YYYY-MM").optional(),
+});

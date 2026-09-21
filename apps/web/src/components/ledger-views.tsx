@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatMoney } from "@erp/core";
 import type { createClient } from "@/server/supabase";
+import { ExportButton } from "./export-button";
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
 type Params = { ym?: string; account?: string; partner?: string };
@@ -61,6 +62,8 @@ export async function LedgerView({ sb, params }: { sb: Sb; params: Params }) {
           </select>
         </label>
         <button className="rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-1.5 text-sm">Xem</button>
+        <span className="flex-1" />
+        <ExportButton report="gl" period={ym} />
       </form>
       <div className={box}>
         <table className="w-full text-sm" id="ledger-table">
@@ -140,6 +143,8 @@ export async function BalanceView({ sb, params }: { sb: Sb; params: Params }) {
           <input type="month" name="ym" defaultValue={ym} className={`${inputCls} ml-2`} />
         </label>
         <button className="rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-1.5 text-sm">Xem</button>
+        <span className="flex-1" />
+        <ExportButton report="balance" period={ym} />
       </form>
       <div className={box}>
         <table className="w-full text-sm" id="balance-table">
