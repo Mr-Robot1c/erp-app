@@ -36,6 +36,7 @@ import {
  * partner_advances, bank_txns, journal_entries, journal_lines) + 2 VIEW (v_on_hand, v_available —
  * security_invoker, quét y như bảng: B đọc qua view chỉ thấy dòng của B).
  * Lô 3.3 (migration 0012): thêm payables, payment_allocations.
+ * Lô 4.1 (migration 0013): thêm 3 VIEW báo cáo (v_journal, v_account_balance, v_partner_balance — security_invoker).
  */
 
 // Bảng CÓ policy SELECT cho client — dùng phép kiểm "thấy dòng mình, không thấy dòng người khác".
@@ -64,6 +65,9 @@ const READ_TABLES = [
   "payment_allocations",
   "v_on_hand",
   "v_available",
+  "v_journal",
+  "v_account_balance",
+  "v_partner_balance",
 ] as const;
 
 // Bảng RLS bật nhưng KHÔNG policy nào (kể cả SELECT) — client luôn thấy 0 dòng, dù là tenant nào.

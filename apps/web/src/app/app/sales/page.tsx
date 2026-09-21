@@ -7,7 +7,7 @@ import { getQueues } from "@/server/queues";
 import type { DocRow } from "@/components/doc-detail";
 import { DOC_COLUMNS } from "@/lib/doc-columns";
 
-export default async function SalesPage({ searchParams }: { searchParams: Promise<{ tab?: string; status?: string }> }) {
+export default async function SalesPage({ searchParams }: { searchParams: Promise<{ tab?: string; status?: string; open?: string }> }) {
   const params = await searchParams;
   const supabase = await createClient();
   const {
@@ -36,7 +36,8 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
         <QueueCards queues={queues} role={membership.role as Role} only={["sales", "warehouse"]} />
       </div>
       <DocBoard
-      key={`${params.tab ?? ""}-${params.status ?? ""}`}
+      key={`${params.tab ?? ""}-${params.status ?? ""}-${params.open ?? ""}`}
+      initialOpen={params.open}
       initialTab={params.tab}
       initialStatus={params.status}
       module="sales"

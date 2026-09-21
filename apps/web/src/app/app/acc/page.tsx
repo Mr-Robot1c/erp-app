@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 import { formatMoney } from "@erp/core";
+import Link from "next/link";
 import { createClient } from "@/server/supabase";
+import { BalanceView, LedgerView, PartnerLedgerView } from "@/components/ledger-views";
 
 /** Công nợ đơn giản (lô 2.5): phải thu còn mở, tiền ứng trước, và hàng chờ khớp tay (phiếu thu không mã / dư thành ứng trước).
  * Báo cáo công nợ đầy đủ (tuổi nợ, nhắc, chặn) ở GĐ4. */
-export default async function AccPage() {
+export default async function AccPage({ searchParams }: { searchParams: Promise<{ view?: string; ym?: string; account?: string; partner?: string }> }) {
+  const params = await searchParams;
+  const view = ("debt ledger balance partner".split(" ").includes(params.view ?? "") ? params.view : "debt") as "debt" | "ledger" | "balance" | "partner";
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,6 +40,33 @@ export default async function AccPage() {
   return (
     <div className="max-w-4xl">
       <h1 className="text-lg font-semibold">Kế toán</h1>
+      <div className="mt-3 flex flex-wrap gap-1" id="acc-tabs">
+        {(
+          [
+            ["debt", "Công nợ"],
+            ["ledger", "Sổ cái"],
+            ["balance", "Số dư tài khoản"],
+            ["partner", "Sổ chi tiết đối tác"],
+          ] as const
+        ).map(([key, label]) => (
+          <Link
+            key={key}
+            href={`/app/acc?view=${key}`}
+            data-view={key}
+            className={`rounded-full border px-3 py-1 text-sm ${
+              view === key ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--bg)]" : "border-[var(--line)] bg-[var(--sf)]"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+
+      {view === "ledger" && <LedgerView sb={supabase} params={params} />}
+      {view === "balance" && <BalanceView sb={supabase} params={params} />}
+      {view === "partner" && <PartnerLedgerView sb={supabase} params={params} />}
+      {view === "debt" && (
+        <>
 
       <h2 className="mt-4 text-sm font-semibold">Khoản phải thu còn mở</h2>
       <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
@@ -139,6 +170,8 @@ export default async function AccPage() {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 }

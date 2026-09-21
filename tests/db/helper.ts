@@ -319,6 +319,7 @@ export async function createGd2Fixtures(tenantId: string, documentId: string, ta
     insert into receipt_allocations (tenant_id, receipt_id, receivable_id, amount)
     values (${tenantId}, ${documentId}, ${recv.id}, 100) returning id`;
   await sql`insert into partner_advances (tenant_id, partner_id, amount) values (${tenantId}, ${partnerId}, 50)`;
+  await sql`update documents set partner_id = ${partnerId} where id = ${documentId} and tenant_id = ${tenantId}`; // để v_partner_balance có dòng
   const [pay] = await sql`
     insert into payables (tenant_id, document_id, partner_id, amount)
     values (${tenantId}, ${documentId}, ${partnerId}, 2000) returning id`;

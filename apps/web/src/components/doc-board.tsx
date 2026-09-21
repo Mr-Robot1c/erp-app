@@ -51,7 +51,10 @@ export function DocBoard({
   docs,
   initialTab,
   initialStatus,
+  initialOpen,
 }: {
+  /** Số chứng từ mở sẵn chi tiết (truy ngược từ sổ cái): tự chọn đúng tab. */
+  initialOpen?: string;
   initialTab?: string;
   /** Pill lọc chọn sẵn (từ thẻ việc): 1 trạng thái hoặc nhiều, cách nhau dấu phẩy. */
   initialStatus?: string;
@@ -64,7 +67,10 @@ export function DocBoard({
 }) {
   const router = useRouter();
   const TABS = TABS_BY_MODULE[module];
-  const [tab, setTab] = useState(TABS.some((t) => t.key === initialTab) ? (initialTab as string) : TABS[0].key);
+  const openDoc0 = initialOpen ? docs.find((d) => d.doc_no === initialOpen) : undefined;
+  const [tab, setTab] = useState(
+    openDoc0 && TABS.some((t) => t.key === openDoc0.doc_type) ? openDoc0.doc_type : TABS.some((t) => t.key === initialTab) ? (initialTab as string) : TABS[0].key,
+  );
   const initialSet = (initialStatus ?? "").split(",").filter((x): x is DocStatus => (STATUSES as readonly string[]).includes(x));
   const [status, setStatus] = useState<DocStatus | "all">(initialSet.length === 1 ? initialSet[0] : "all");
   const [statusSet, setStatusSet] = useState<DocStatus[]>(initialSet.length > 1 ? initialSet : []);
@@ -73,7 +79,7 @@ export function DocBoard({
   const [receiving, setReceiving] = useState(false);
   const [paying, setPaying] = useState(false);
   const [buying, setBuying] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(openDoc0?.id ?? null);
 
   const partnerName = (id: string | null) => partners.find((p) => p.id === id)?.name ?? "—";
   const itemName = (id: string | null) => items.find((i) => i.id === id)?.name ?? "—";
