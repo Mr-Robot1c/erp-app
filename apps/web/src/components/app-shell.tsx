@@ -56,8 +56,10 @@ export function AppShell({
   displayName,
   role,
   fontClassName,
+  taskCount = 0,
   children,
 }: {
+  taskCount?: number;
   tenantName: string;
   displayName: string;
   role: Role;
@@ -97,6 +99,11 @@ export function AppShell({
                     }`}
                   >
                     {item.label}
+                    {item.view === "tasks" && taskCount > 0 && (
+                      <span id="task-badge" className="ml-2 min-w-5 rounded-full bg-[var(--acc)] px-1.5 text-center text-[11px] font-semibold text-white tabular-nums">
+                        {taskCount}
+                      </span>
+                    )}
                   </Link>
                 ) : (
                   <div

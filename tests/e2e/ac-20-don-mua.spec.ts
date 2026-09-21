@@ -41,7 +41,7 @@ test("AC-20 mua hàng lập đơn mua trên UI -> xác nhận chờ duyệt; tr�
     await page.goto("/app/tasks");
     await expect(page.getByText(/Duyệt đơn mua/)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Duyệt", exact: true }).click();
-    await expect(page.getByText("Không có việc nào đang chờ.")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Không có việc nào đang chờ bạn.")).toBeVisible({ timeout: 30_000 });
 
     const [po] = await h.sql`select status, meta from documents where tenant_id = ${tenant.tenantId} and doc_type = 'PO'`;
     expect(po.status).toBe("confirmed");

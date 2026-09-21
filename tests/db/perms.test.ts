@@ -222,6 +222,11 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     call: (token) => post("/api/receipts/match", token, { receiptId: randomUUID() }, { "idempotency-key": randomUUID() }),
     allowed: ["admin", "accountant", "chief_accountant"],
   },
+  {
+    name: "POST /api/tasks/list",
+    call: (token) => post("/api/tasks/list", token, {}), // scope mặc định = việc của tôi: mọi vai gọi được; scope=all chỉ admin/giám đốc (kiểm ở tasks-list.test.ts)
+    allowed: [...ROLES],
+  },
   // POST /api/reports/export KHÔNG vào bảng này: trả TỆP .xlsx (không phải JSON) khi thành công — quyền (403 kinh doanh, 401 chưa đăng nhập) kiểm ở tests/db/report.test.ts.
   // POST /api/jobs/overdue-sweep KHÔNG vào bảng này: xác thực bằng token việc định kỳ (header x-job-token), không phải phiên người dùng
   // — đã kiểm ở tests/db/overdue.test.ts (thiếu/sai token → forbidden).

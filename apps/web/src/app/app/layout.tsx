@@ -56,8 +56,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("id", membership.tenant_id)
     .maybeSingle();
 
+  // Badge sidebar "Việc cần làm" = việc CỦA TÔI (vai đang đăng nhập), không phải tổng cả công ty (UX-1, 03 mục C3).
+  const { count: myTaskCount } = await supabase
+    .from("tasks")
+    .select("*", { count: "exact", head: true })
+    .eq("done", false)
+    .eq("role", membership.role);
+
   return (
     <AppShell
+      taskCount={myTaskCount ?? 0}
       tenantName={tenant?.name ?? "ERP"}
       displayName={membership.display_name}
       role={membership.role as Role}
