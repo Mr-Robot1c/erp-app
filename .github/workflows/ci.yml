@@ -12,6 +12,11 @@ env:
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
   SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
+# Push mới lên cùng nhánh thì HUỶ lượt CI cũ đang chạy (tránh nhiều lượt chồng nhau tranh cùng DB Supabase và giới hạn đăng nhập).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-type-unit:
     runs-on: ubuntu-latest
@@ -46,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,7 +61,7 @@ jobs:
           printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_ANON_KEY=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\nSUPABASE_DB_URL=%s\nSUPABASE_ACCESS_TOKEN=%s\nSUPABASE_PROJECT_REF=%s\n' \
             "$NEXT_PUBLIC_SUPABASE_URL" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_SERVICE_ROLE_KEY" \
             "$SUPABASE_DB_URL" "$SUPABASE_ACCESS_TOKEN" "$SUPABASE_PROJECT_REF" > .env.local
-      - run: npm run test:db -- --shard=${{ matrix.shard }}/3
+      - run: npm run test:db -- --shard=${{ matrix.shard }}/6
 
   e2e:
     if: github.event_name == 'push'
