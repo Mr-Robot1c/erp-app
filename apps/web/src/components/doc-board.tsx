@@ -1,11 +1,12 @@
 "use client";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { STATUSES, STATUS_LABEL, can, formatMoney, type DocStatus, type Role } from "@erp/core";
 import { DocDetail, type DocRow, type LineRow } from "./doc-detail";
 import { Modal, StatusPill, btnGhost, btnPrimary, callApi, inputCls, newKey, statusLabelOf } from "./doc-ui";
 import { LinesEditor, emptyLine, linesTotal, type EditorLine, type LineItemOption } from "./lines-editor";
 import { PartnerPicker, type PartnerOption } from "./partner-picker";
+import { useAIChatContext } from "./ai-chat-context";
 
 type PartnerRow = PartnerOption & { kind: string };
 type Tab = { key: string; label: string };
@@ -66,6 +67,7 @@ export function DocBoard({
   docs: DocRow[];
 }) {
   const router = useRouter();
+  const { setPageContext } = useAIChatContext();
   const TABS = TABS_BY_MODULE[module];
   const openDoc0 = initialOpen ? docs.find((d) => d.doc_no === initialOpen) : undefined;
   const [tab, setTab] = useState(
@@ -96,6 +98,12 @@ export function DocBoard({
     .filter((d) => !term || d.doc_no.toLowerCase().includes(term) || partnerName(d.partner_id).toLowerCase().includes(term));
 
   const open = docs.find((d) => d.id === openId) ?? null;
+  useEffect(() => {
+    if (module === "sales" && open?.doc_type === "SO") {
+      setPageContext({ page_type: "sales_order_detail", module: "sales", record_id: open.doc_no });
+    } else setPageContext(null);
+    return () => setPageContext(null);
+  }, [module, open?.doc_type, open?.doc_no, setPageContext]);
 
   return (
     <div>

@@ -60,6 +60,14 @@ export const STATUS_LABEL: Record<DocStatus, string> = {
   cancelled: "Đã huỷ",
 };
 
+/** Nhãn hiển thị thực tế của đơn bán. `deliveredAll` là trạng thái vận hành đã được
+ * luồng xuất kho ghi vào documents.meta; không suy diễn thêm trạng thái không có trong ERP. */
+export function salesOrderStatusLabel(status: DocStatus, deliveredAll = false): string {
+  if (deliveredAll && status !== "done" && status !== "cancelled") return "Đã giao";
+  if (status === "partial") return "Đã giao một phần";
+  return STATUS_LABEL[status] ?? status;
+}
+
 export function formatDocNo(type: DocType, n: number): string {
   return `${DOC_LABEL[type].prefix}-${String(n).padStart(4, "0")}`;
 }

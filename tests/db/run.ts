@@ -7,6 +7,8 @@ if (existsSync(".env.local")) dotenv.config({ path: ".env.local" });
 
 // Token của job quét công nợ cho test: server (next start) kế thừa biến môi trường này; test đọc cùng giá trị.
 process.env.JOB_TOKEN ??= "test-job-token";
+// Secret cầu nối chatbot (CB-1.1): server kế thừa biến này; test gọi API AI bridge dùng cùng giá trị.
+process.env.ERP_CHATBOT_SHARED_SECRET ??= "test-erp-chatbot-secret";
 
 const PORT = 3100;
 const BASE_URL = `http://localhost:${PORT}`;

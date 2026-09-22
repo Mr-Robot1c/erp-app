@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ROLE_LABEL, canView, type Role, type View } from "@erp/core";
 import { SignOutButton } from "./sign-out-button";
+import { AIChatContextProvider } from "./ai-chat-context";
+import { AIChatWidget } from "./ai-chat-widget";
 
 type NavItem = {
   view: View | "team";
@@ -69,6 +71,7 @@ export function AppShell({
   const pathname = usePathname();
 
   return (
+    <AIChatContextProvider>
     <div
       className={`${fontClassName} grid min-h-screen grid-cols-[220px_1fr] bg-[var(--bg)] text-[var(--ink)] max-[760px]:grid-cols-1`}
     >
@@ -132,6 +135,8 @@ export function AppShell({
         </header>
         <main className="flex-1 px-5 py-6">{children}</main>
       </div>
+      <AIChatWidget />
     </div>
+    </AIChatContextProvider>
   );
 }
