@@ -55,6 +55,26 @@ describe("ERP AI chat proxy", () => {
     expect(fetchMock.mock.calls.map((call) => JSON.parse(call[1].body).page_context.record_id)).toEqual(["ĐB-0001", "ĐB-0002"]);
   });
 
+  it("CB-1.7a: accepts a message with no document open (page_context omitted or null)", async () => {
+    requireMember.mockResolvedValue({ userId: "server-user", tenantId: "server-tenant", role: "sales" });
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ conversation_id: "ERP-1", message: "Dạ" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const omitted = await POST(new Request("http://erp.test/api/ai/chat", {
+      method: "POST", body: JSON.stringify({ message: "hôm nay có gì gấp?" }),
+    }));
+    expect(omitted.status).toBe(200);
+    expect((await omitted.json()).ok).toBe(true);
+
+    const explicitNull = await POST(new Request("http://erp.test/api/ai/chat", {
+      method: "POST", body: JSON.stringify({ message: "hôm nay có gì gấp?", page_context: null }),
+    }));
+    expect(explicitNull.status).toBe(200);
+    expect((await explicitNull.json()).ok).toBe(true);
+
+    expect(fetchMock.mock.calls.map((call) => JSON.parse(call[1].body).page_context)).toEqual([undefined, null]);
+  });
+
   it("rejects malformed or injected page context", async () => {
     requireMember.mockResolvedValue({ userId: "u", tenantId: "t", role: "sales" });
     const response = await POST(new Request("http://erp.test/api/ai/chat", { method: "POST", body: JSON.stringify({

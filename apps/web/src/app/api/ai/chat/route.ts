@@ -6,7 +6,8 @@ import { requireMember } from "@/server/auth";
 const bodySchema = z.object({
   conversation_id: z.string().max(64).optional(),
   message: z.string().trim().min(1).max(4000),
-  page_context: z.object({ page_type: z.literal("sales_order_detail"), module: z.literal("sales"), record_id: z.string().regex(/^[A-Za-zÀ-ỹĐđ0-9_-]{1,40}$/) }),
+  // null/absent = no document open (dashboard, list screens, ...) — still a valid chat.
+  page_context: z.object({ page_type: z.literal("sales_order_detail"), module: z.literal("sales"), record_id: z.string().regex(/^[A-Za-zÀ-ỹĐđ0-9_-]{1,40}$/) }).nullish(),
 });
 
 export const POST = handle(async (req) => {
