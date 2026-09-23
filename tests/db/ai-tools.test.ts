@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  addTenantMember, apiUrl, createItem, createTestTenant, createWarehouse, sql,
+  addTenantMember, apiUrl, createDocFixture, createItem, createPartner, createTestTenant, createWarehouse, sql,
   type TenantMember, type TestTenant,
 } from "./helper";
 
@@ -117,6 +117,54 @@ describe("Bộ tool AI CB-2.2 — tách tenant CỨNG", () => {
       });
       expect(res.status).toBe(200);
       expect(res.json.data.items.map((i: { code: string }) => i.code).sort()).toEqual(["AILIST-A1", "AILIST-A2"]);
+    });
+  });
+
+  describe("partner-debt", () => {
+    const sameCode = "AIDEBT-01";
+
+    beforeAll(async () => {
+      const partnerA = await createPartner(tenantA.tenantId, sameCode, { kind: "customer" });
+      const docOverdue = await createDocFixture(tenantA.tenantId, "AIDEBT-INV-1");
+      const docNotDue = await createDocFixture(tenantA.tenantId, "AIDEBT-INV-2");
+      await sql`insert into receivables (tenant_id, kind, document_id, partner_id, amount, paid, due_date)
+        values (${tenantA.tenantId}, 'invoice', ${docOverdue}, ${partnerA}, 3000000, 0, current_date - interval '45 days')`;
+      await sql`insert into receivables (tenant_id, kind, document_id, partner_id, amount, paid, due_date)
+        values (${tenantA.tenantId}, 'invoice', ${docNotDue}, ${partnerA}, 2000000, 0, current_date + interval '10 days')`;
+
+      // Cùng MÃ đối tác ở tenant B, công nợ khổng lồ — bắt lỗi nếu truy vấn quên lọc tenant_id.
+      const partnerB = await createPartner(tenantB.tenantId, sameCode, { kind: "customer" });
+      const docB = await createDocFixture(tenantB.tenantId, "AIDEBT-INV-B");
+      await sql`insert into receivables (tenant_id, kind, document_id, partner_id, amount, paid, due_date)
+        values (${tenantB.tenantId}, 'invoice', ${docB}, ${partnerB}, 999000000, 0, current_date)`;
+
+      // Mã đối tác CHỈ tồn tại ở tenant B.
+      await createPartner(tenantB.tenantId, "AIDEBT-B-ONLY", { kind: "customer" });
+    });
+
+    it("chatbot bịa tenant_id → forbidden", async () => {
+      const res = await callBridge("/api/ai/tools/partner-debt", {
+        tenant_id: tenantB.tenantId, staff_user_id: staffA.userId, partner_code: sameCode, kind: "receivable",
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("nhân viên tenant A đọc đúng công nợ CỦA TENANT A, không lẫn dù trùng MÃ đối tác với tenant B", async () => {
+      const res = await callBridge("/api/ai/tools/partner-debt", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, partner_code: sameCode, kind: "receivable",
+      });
+      expect(res.status).toBe(200);
+      expect(res.json.data.total_open).toBe(5000000);
+      expect(res.json.data.aging).toMatchObject({ not_due: 2000000, d31_60: 3000000 });
+      expect(res.json.data.recent).toHaveLength(2);
+    });
+
+    it("mã đối tác CHỈ tồn tại ở tenant B → nhân viên tenant A tra bằng tenant_id của MÌNH nhận not_found", async () => {
+      const res = await callBridge("/api/ai/tools/partner-debt", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, partner_code: "AIDEBT-B-ONLY", kind: "receivable",
+      });
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
     });
   });
 });

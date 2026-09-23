@@ -82,3 +82,67 @@ export async function getItemsListForStaff(
     truncated: rows.length > ITEMS_LIST_LIMIT,
   };
 }
+
+type DebtKind = "receivable" | "payable";
+export type PartnerDebt = {
+  partner: { code: string; name: string };
+  kind: DebtKind;
+  total_open: number;
+  aging: { not_due: number; d1_30: number; d31_60: number; d61_90: number; d90_plus: number };
+  recent: Array<{ doc_no: string | null; due_date: string | null; open_amount: number }>;
+};
+
+type DebtRow = { doc_no: string | null; due_date: string | null; open_amount: string; days_overdue: number | null };
+
+/** Read-only partner debt lookup for the AI bridge (CB-2.2): tổng công nợ còn mở + phân theo tuổi nợ
+ * (chưa đến hạn / 1–30 / 31–60 / 61–90 / >90 ngày quá hạn) + 5 chứng từ gần nhất còn mở. Bucket khớp
+ * cách hiển thị "Tuổi nợ" ở màn Công nợ (`server/overdue.ts`). */
+export async function getPartnerDebtForStaff(
+  tenantId: string,
+  staffUserId: string,
+  partnerCode: string,
+  kind: DebtKind,
+  db: Queryable = sql as unknown as Queryable,
+): Promise<PartnerDebt> {
+  await authorizeStaffMember(tenantId, staffUserId, db);
+
+  const [partner] = await db<{ id: string; code: string; name: string }[]>`
+    select id, code, name from partners where tenant_id = ${tenantId} and upper(code) = upper(${partnerCode}) limit 1`;
+  if (!partner) throw new AppError("not_found", "Không tìm thấy mã đối tác trong hệ thống.");
+
+  const rows =
+    kind === "receivable"
+      ? await db<DebtRow[]>`
+          select d.doc_no, to_char(r.due_date, 'YYYY-MM-DD') as due_date, (r.amount - r.paid) as open_amount,
+            case when r.due_date is null then null else (current_date - r.due_date) end as days_overdue
+          from receivables r left join documents d on d.tenant_id = r.tenant_id and d.id = r.document_id
+          where r.tenant_id = ${tenantId} and r.partner_id = ${partner.id} and r.amount - r.paid > 0
+          order by coalesce(r.due_date, current_date) desc, r.created_at desc`
+      : await db<DebtRow[]>`
+          select d.doc_no, to_char(p.due_date, 'YYYY-MM-DD') as due_date, (p.amount - p.paid) as open_amount,
+            case when p.due_date is null then null else (current_date - p.due_date) end as days_overdue
+          from payables p left join documents d on d.tenant_id = p.tenant_id and d.id = p.document_id
+          where p.tenant_id = ${tenantId} and p.partner_id = ${partner.id} and p.amount - p.paid > 0
+          order by coalesce(p.due_date, current_date) desc, p.created_at desc`;
+
+  const aging = { not_due: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90_plus: 0 };
+  let totalOpen = 0;
+  for (const r of rows) {
+    const open = Number(r.open_amount);
+    totalOpen += open;
+    const days = r.days_overdue;
+    if (days == null || days <= 0) aging.not_due += open;
+    else if (days <= 30) aging.d1_30 += open;
+    else if (days <= 60) aging.d31_60 += open;
+    else if (days <= 90) aging.d61_90 += open;
+    else aging.d90_plus += open;
+  }
+
+  return {
+    partner: { code: partner.code, name: partner.name },
+    kind,
+    total_open: totalOpen,
+    aging,
+    recent: rows.slice(0, 5).map((r) => ({ doc_no: r.doc_no, due_date: r.due_date, open_amount: Number(r.open_amount) })),
+  };
+}
