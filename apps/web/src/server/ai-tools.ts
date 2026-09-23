@@ -1,4 +1,4 @@
-import { AppError } from "@erp/core";
+import { AppError, STATUS_LABEL, type DocStatus } from "@erp/core";
 import { authorizeStaffMember, type Queryable } from "./ai-bridge";
 import { sql } from "./db";
 
@@ -144,5 +144,47 @@ export async function getPartnerDebtForStaff(
     total_open: totalOpen,
     aging,
     recent: rows.slice(0, 5).map((r) => ({ doc_no: r.doc_no, due_date: r.due_date, open_amount: Number(r.open_amount) })),
+  };
+}
+
+export type InvoiceStatus = {
+  record_id: string;
+  status_code: DocStatus;
+  status_label_vi: string;
+  amount: number | null;
+  paid: number | null;
+  remaining: number | null;
+  due_date: string | null;
+};
+
+/** Read-only, tenant-scoped invoice lookup for the AI bridge (CB-2.2) — same shape family as
+ * `getSalesOrderStatusForStaff` (CB-1.1) but for INV, with the receivable's amount/paid/remaining. */
+export async function getInvoiceStatusForStaff(
+  tenantId: string,
+  staffUserId: string,
+  recordId: string,
+  db: Queryable = sql as unknown as Queryable,
+): Promise<InvoiceStatus> {
+  await authorizeStaffMember(tenantId, staffUserId, db);
+
+  const [doc] = await db<{ id: string; doc_no: string; status: DocStatus }[]>`
+    select id, doc_no, status from documents
+    where tenant_id = ${tenantId} and doc_type = 'INV' and doc_no = ${recordId}
+    limit 1`;
+  if (!doc) throw new AppError("not_found", "Không tìm thấy hoá đơn trong doanh nghiệp hiện tại.");
+
+  const [rcv] = await db<{ amount: string; paid: string; due_date: string | null }[]>`
+    select amount, paid, to_char(due_date, 'YYYY-MM-DD') as due_date from receivables
+    where tenant_id = ${tenantId} and kind = 'invoice' and document_id = ${doc.id}
+    limit 1`;
+
+  return {
+    record_id: doc.doc_no,
+    status_code: doc.status,
+    status_label_vi: STATUS_LABEL[doc.status] ?? doc.status,
+    amount: rcv ? Number(rcv.amount) : null,
+    paid: rcv ? Number(rcv.paid) : null,
+    remaining: rcv ? Number(rcv.amount) - Number(rcv.paid) : null,
+    due_date: rcv?.due_date ?? null,
   };
 }

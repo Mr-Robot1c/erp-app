@@ -167,4 +167,38 @@ describe("Bộ tool AI CB-2.2 — tách tenant CỨNG", () => {
       expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
     });
   });
+
+  describe("invoice-status", () => {
+    const sameDocNo = "AIINV-0001";
+
+    beforeAll(async () => {
+      await sql`insert into documents (tenant_id, doc_type, doc_no, status) values (${tenantA.tenantId}, 'INV', ${sameDocNo}, 'done')`;
+      // Cùng SỐ hoá đơn ở tenant B, trạng thái khác — bắt lỗi nếu truy vấn quên lọc tenant_id.
+      await sql`insert into documents (tenant_id, doc_type, doc_no, status) values (${tenantB.tenantId}, 'INV', ${sameDocNo}, 'draft')`;
+    });
+
+    it("chatbot bịa tenant_id → forbidden", async () => {
+      const res = await callBridge("/api/ai/tools/invoice-status", {
+        tenant_id: tenantB.tenantId, staff_user_id: staffA.userId, record_id: sameDocNo,
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("nhân viên tenant A đọc đúng hoá đơn CỦA TENANT A, không lẫn dù trùng SỐ với tenant B", async () => {
+      const res = await callBridge("/api/ai/tools/invoice-status", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, record_id: sameDocNo,
+      });
+      expect(res.status).toBe(200);
+      expect(res.json.data).toMatchObject({ record_id: sameDocNo, status_code: "done" });
+    });
+
+    it("hoá đơn CHỈ tồn tại ở tenant B → not_found", async () => {
+      await sql`insert into documents (tenant_id, doc_type, doc_no, status) values (${tenantB.tenantId}, 'INV', 'AIINV-B-ONLY', 'draft')`;
+      const res = await callBridge("/api/ai/tools/invoice-status", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, record_id: "AIINV-B-ONLY",
+      });
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
+    });
+  });
 });
