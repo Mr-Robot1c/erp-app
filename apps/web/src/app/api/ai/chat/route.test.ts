@@ -34,8 +34,25 @@ describe("ERP AI chat proxy", () => {
     const response = await POST(new Request("http://erp.test/api/ai/chat", { method: "POST", body: JSON.stringify(malicious) }));
     expect(response.status).toBe(200);
     const init = fetchMock.mock.calls[0][1];
-    expect(JSON.parse(init.body)).toMatchObject({ tenant_id: "server-tenant", staff_user_id: "server-user", staff_role: "sales" });
+    expect(JSON.parse(init.body)).toMatchObject({
+      tenant_id: "server-tenant", staff_user_id: "server-user", staff_role: "sales",
+      page_context: { page_type: "sales_order_detail", module: "sales", record_id: "ĐB-0003" },
+    });
     expect(init.headers["x-erp-chat-secret"]).toBe("bridge-secret");
+  });
+
+  it("forwards the current record on every request instead of reusing the previous one", async () => {
+    requireMember.mockResolvedValue({ userId: "server-user", tenantId: "server-tenant", role: "sales" });
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ conversation_id: "ERP-1", message: "ok" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    for (const record_id of ["ĐB-0001", "ĐB-0002"]) {
+      await POST(new Request("http://erp.test/api/ai/chat", {
+        method: "POST", body: JSON.stringify({ ...payload, conversation_id: "ERP-1", page_context: { ...payload.page_context, record_id } }),
+      }));
+    }
+
+    expect(fetchMock.mock.calls.map((call) => JSON.parse(call[1].body).page_context.record_id)).toEqual(["ĐB-0001", "ĐB-0002"]);
   });
 
   it("rejects malformed or injected page context", async () => {
