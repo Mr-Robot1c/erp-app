@@ -95,6 +95,7 @@ export function AppShell({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     className={`flex items-center justify-between rounded-[var(--r)] border-l-[3px] px-2.5 py-2 text-[13.5px] ${
                       pathname === item.href
                         ? "border-[var(--acc)] bg-[var(--side-on)] font-semibold text-white"

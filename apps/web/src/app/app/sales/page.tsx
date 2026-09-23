@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import type { Role } from "@erp/core";
 import { createClient } from "@/server/supabase";
 import { DocBoard } from "@/components/doc-board";
-import { QueueCards } from "@/components/queue-cards";
-import { getQueues } from "@/server/queues";
+import { QueueCardsClient } from "@/components/queue-cards-client";
 import type { DocRow } from "@/components/doc-detail";
 import { DOC_COLUMNS } from "@/lib/doc-columns";
 
@@ -17,7 +16,6 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
 
   const { data: membership } = await supabase.from("memberships").select("role, tenant_id").eq("user_id", user.id).maybeSingle();
   if (!membership) redirect("/onboarding");
-  const queues = await getQueues(membership.tenant_id as string);
 
   const [{ data: partners }, { data: items }, { data: docs }] = await Promise.all([
     supabase.from("partners").select("id, code, name, kind").order("name"),
@@ -33,7 +31,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
   return (
     <div>
       <div className="mb-4">
-        <QueueCards queues={queues} role={membership.role as Role} only={["sales", "warehouse"]} />
+        <QueueCardsClient role={membership.role as Role} only={["sales", "warehouse"]} />
       </div>
       <DocBoard
       key={`${params.tab ?? ""}-${params.status ?? ""}-${params.open ?? ""}`}
