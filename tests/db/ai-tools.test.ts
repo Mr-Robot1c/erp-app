@@ -166,6 +166,23 @@ describe("Bộ tool AI CB-2.2 — tách tenant CỨNG", () => {
       expect(res.status).toBe(200);
       expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
     });
+
+    it("CB-2.6: bỏ trống partner_code -> liệt kê top nợ, chatbot bịa tenant_id vẫn forbidden", async () => {
+      const res = await callBridge("/api/ai/tools/partner-debt", {
+        tenant_id: tenantB.tenantId, staff_user_id: staffA.userId, kind: "receivable",
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("CB-2.6: liệt kê top nợ CỦA TENANT A, không lẫn khoản nợ khổng lồ của tenant B dù trùng mã đối tác", async () => {
+      const res = await callBridge("/api/ai/tools/partner-debt", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, kind: "receivable",
+      });
+      expect(res.status).toBe(200);
+      expect(res.json.data.partners).toEqual([
+        { code: sameCode, name: "Đối tác " + sameCode, total_open: 5000000, overdue_amount: 3000000 },
+      ]);
+    });
   });
 
   describe("invoice-status", () => {

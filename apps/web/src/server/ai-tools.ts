@@ -91,20 +91,59 @@ export type PartnerDebt = {
   aging: { not_due: number; d1_30: number; d31_60: number; d61_90: number; d90_plus: number };
   recent: Array<{ doc_no: string | null; due_date: string | null; open_amount: number }>;
 };
+export type PartnerDebtListRow = { code: string; name: string; total_open: number; overdue_amount: number };
+export type PartnerDebtList = { kind: DebtKind; partners: PartnerDebtListRow[]; truncated: boolean };
 
 type DebtRow = { doc_no: string | null; due_date: string | null; open_amount: string; days_overdue: number | null };
 
+const PARTNER_DEBT_LIST_LIMIT = 10;
+
+/** CB-2.6: no partner given → top N partners with open debt (mã, tên, tổng nợ, quá hạn), thay vì bắt
+ * hỏi lại mã — chip gợi ý "Khách nào còn nợ?" (CB-2.1) phải có đường trả lời trọn không cần hỏi ngược. */
+async function listTopDebtorsForStaff(
+  tenantId: string,
+  kind: DebtKind,
+  db: Queryable,
+): Promise<PartnerDebtList> {
+  const rows =
+    kind === "receivable"
+      ? await db<{ code: string; name: string; total_open: string; overdue_amount: string }[]>`
+          select pt.code, pt.name, sum(r.amount - r.paid) as total_open,
+            sum(case when r.due_date is not null and r.due_date < current_date then r.amount - r.paid else 0 end) as overdue_amount
+          from receivables r join partners pt on pt.tenant_id = r.tenant_id and pt.id = r.partner_id
+          where r.tenant_id = ${tenantId} and r.amount - r.paid > 0
+          group by pt.id, pt.code, pt.name
+          order by total_open desc`
+      : await db<{ code: string; name: string; total_open: string; overdue_amount: string }[]>`
+          select pt.code, pt.name, sum(p.amount - p.paid) as total_open,
+            sum(case when p.due_date is not null and p.due_date < current_date then p.amount - p.paid else 0 end) as overdue_amount
+          from payables p join partners pt on pt.tenant_id = p.tenant_id and pt.id = p.partner_id
+          where p.tenant_id = ${tenantId} and p.amount - p.paid > 0
+          group by pt.id, pt.code, pt.name
+          order by total_open desc`;
+
+  return {
+    kind,
+    partners: rows.slice(0, PARTNER_DEBT_LIST_LIMIT).map((r) => ({
+      code: r.code, name: r.name, total_open: Number(r.total_open), overdue_amount: Number(r.overdue_amount),
+    })),
+    truncated: rows.length > PARTNER_DEBT_LIST_LIMIT,
+  };
+}
+
 /** Read-only partner debt lookup for the AI bridge (CB-2.2): tổng công nợ còn mở + phân theo tuổi nợ
  * (chưa đến hạn / 1–30 / 31–60 / 61–90 / >90 ngày quá hạn) + 5 chứng từ gần nhất còn mở. Bucket khớp
- * cách hiển thị "Tuổi nợ" ở màn Công nợ (`server/overdue.ts`). */
+ * cách hiển thị "Tuổi nợ" ở màn Công nợ (`server/overdue.ts`). Không truyền `partnerCode` → chế độ
+ * liệt kê top nợ nhiều nhất (CB-2.6), xem `listTopDebtorsForStaff`. */
 export async function getPartnerDebtForStaff(
   tenantId: string,
   staffUserId: string,
-  partnerCode: string,
+  partnerCode: string | undefined,
   kind: DebtKind,
   db: Queryable = sql as unknown as Queryable,
-): Promise<PartnerDebt> {
+): Promise<PartnerDebt | PartnerDebtList> {
   await authorizeStaffMember(tenantId, staffUserId, db);
+  if (!partnerCode) return listTopDebtorsForStaff(tenantId, kind, db);
 
   const [partner] = await db<{ id: string; code: string; name: string }[]>`
     select id, code, name from partners where tenant_id = ${tenantId} and upper(code) = upper(${partnerCode}) limit 1`;

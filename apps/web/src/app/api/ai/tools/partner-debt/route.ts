@@ -7,7 +7,8 @@ import { getPartnerDebtForStaff } from "@/server/ai-tools";
 const bodySchema = z.object({
   tenant_id: z.string().uuid(),
   staff_user_id: z.string().uuid(),
-  partner_code: z.string().min(1).max(40),
+  // CB-2.6: bỏ trống -> chế độ liệt kê top khách/NCC còn nợ nhiều nhất.
+  partner_code: z.string().min(1).max(40).optional(),
   kind: z.enum(["receivable", "payable"]),
 });
 

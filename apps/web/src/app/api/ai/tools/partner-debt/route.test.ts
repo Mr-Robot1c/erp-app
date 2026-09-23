@@ -43,4 +43,17 @@ describe("internal partner-debt route", () => {
     expect(response.status).toBe(200);
     expect(getPartnerDebtForStaff).toHaveBeenCalledWith(body.tenant_id, body.staff_user_id, body.partner_code, "receivable");
   });
+
+  it("CB-2.6: omitting partner_code requests the top-debtors listing mode", async () => {
+    getPartnerDebtForStaff.mockResolvedValue({
+      kind: "receivable", truncated: false,
+      partners: [{ code: "KH001", name: "Công ty Khách A", total_open: 5_000_000, overdue_amount: 0 }],
+    });
+    const response = await POST(new Request("http://erp.test/api/ai/tools/partner-debt", {
+      method: "POST", headers: { "x-erp-chat-secret": "bridge-secret" },
+      body: JSON.stringify({ tenant_id: body.tenant_id, staff_user_id: body.staff_user_id, kind: "receivable" }),
+    }));
+    expect(response.status).toBe(200);
+    expect(getPartnerDebtForStaff).toHaveBeenCalledWith(body.tenant_id, body.staff_user_id, undefined, "receivable");
+  });
 });
