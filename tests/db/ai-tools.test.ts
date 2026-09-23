@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  addTenantMember, apiUrl, createDocFixture, createItem, createPartner, createTestTenant, createWarehouse, sql,
-  type TenantMember, type TestTenant,
+  addTenantMember, apiUrl, createDocFixture, createItem, createPartner, createTaskFixture, createTestTenant,
+  createWarehouse, sql, type TenantMember, type TestTenant,
 } from "./helper";
 
 const SECRET = process.env.ERP_CHATBOT_SHARED_SECRET ?? "test-erp-chatbot-secret";
@@ -199,6 +199,33 @@ describe("Bộ tool AI CB-2.2 — tách tenant CỨNG", () => {
       });
       expect(res.status).toBe(200);
       expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
+    });
+  });
+
+  describe("pending-tasks", () => {
+    beforeAll(async () => {
+      const docA = await createDocFixture(tenantA.tenantId, "AITASK-A");
+      await createTaskFixture(tenantA.tenantId, docA, "sales");
+      const docB = await createDocFixture(tenantB.tenantId, "AITASK-B");
+      await createTaskFixture(tenantB.tenantId, docB, "sales");
+      await createTaskFixture(tenantB.tenantId, docB, "sales");
+    });
+
+    it("chatbot bịa tenant_id → forbidden, KHÔNG trả việc của tenant khác", async () => {
+      const res = await callBridge("/api/ai/tools/pending-tasks", {
+        tenant_id: tenantB.tenantId, staff_user_id: staffA.userId,
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("nhân viên tenant A (vai sales) chỉ thấy việc CỦA TENANT A — tenant B có 2 việc cùng vai vẫn không lẫn vào", async () => {
+      const res = await callBridge("/api/ai/tools/pending-tasks", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId,
+      });
+      expect(res.status).toBe(200);
+      expect(res.json.data.role).toBe("sales");
+      expect(res.json.data.total).toBe(1);
+      expect(res.json.data.tasks[0]).toMatchObject({ doc_no: "AITASK-A" });
     });
   });
 });

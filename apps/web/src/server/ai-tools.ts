@@ -1,4 +1,4 @@
-import { AppError, STATUS_LABEL, type DocStatus } from "@erp/core";
+import { AppError, STATUS_LABEL, type DocStatus, type Role } from "@erp/core";
 import { authorizeStaffMember, type Queryable } from "./ai-bridge";
 import { sql } from "./db";
 
@@ -186,5 +186,49 @@ export async function getInvoiceStatusForStaff(
     paid: rcv ? Number(rcv.paid) : null,
     remaining: rcv ? Number(rcv.amount) - Number(rcv.paid) : null,
     due_date: rcv?.due_date ?? null,
+  };
+}
+
+export type PendingTask = {
+  text: string;
+  doc_no: string | null;
+  doc_type: string | null;
+  created_by_name: string | null;
+  created_at: string;
+};
+export type PendingTasks = { role: Role; tasks: PendingTask[]; total: number; truncated: boolean };
+
+const PENDING_TASKS_LIMIT = 20;
+
+/** Read-only pending-tasks lookup for the AI bridge (CB-2.2). Không tái dùng `listTasks`
+ * (server/tasks.ts, UX-1) để tránh đụng vào code/test màn "Việc cần làm" — tự truy vấn riêng,
+ * gồm cả `created_by_name` (đề bài yêu cầu "người lập") mà `listTasks` không trả ra. Mặc định
+ * dùng đúng vai của staff_user_id; `role` truyền vào chỉ để hỏi hộ vai KHÁC trong CÙNG tenant. */
+export async function getPendingTasksForStaff(
+  tenantId: string,
+  staffUserId: string,
+  role: Role | undefined,
+  db: Queryable = sql as unknown as Queryable,
+): Promise<PendingTasks> {
+  const actualRole = await authorizeStaffMember(tenantId, staffUserId, db);
+  const effectiveRole = role ?? actualRole;
+
+  const rows = await db<{
+    text: string; doc_no: string | null; doc_type: string | null; created_by_name: string | null; created_at: string;
+  }[]>`
+    select t.text, d.doc_no, d.doc_type, d.created_by_name, t.created_at
+    from tasks t
+    left join documents d on d.id = t.document_id and d.tenant_id = t.tenant_id
+    where t.tenant_id = ${tenantId} and not t.done and t.role = ${effectiveRole}
+    order by t.created_at`;
+
+  return {
+    role: effectiveRole,
+    tasks: rows.slice(0, PENDING_TASKS_LIMIT).map((r) => ({
+      text: r.text, doc_no: r.doc_no, doc_type: r.doc_type, created_by_name: r.created_by_name,
+      created_at: new Date(r.created_at).toISOString(),
+    })),
+    total: rows.length,
+    truncated: rows.length > PENDING_TASKS_LIMIT,
   };
 }
