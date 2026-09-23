@@ -44,3 +44,41 @@ export async function getStockStatusForStaff(
     warehouses: warehouses.map((w) => ({ code: w.code, qty: Number(w.qty) })),
   };
 }
+
+type ItemKind = "goods" | "service" | "material" | "finished";
+
+export type ItemsListRow = { code: string; name: string; kind: string; on_hand: number; available: number };
+export type ItemsList = { items: ItemsListRow[]; total_matching: number; truncated: boolean };
+
+const ITEMS_LIST_LIMIT = 20;
+
+/** Read-only item search for the AI bridge (CB-2.2): free-text (name/code), optional kind filter,
+ * optional "tồn dưới N" filter on `on_hand` (physical stock, matches the Kho screen's "Tồn" column
+ * — not `available`, which also nets out reservations the asker usually doesn't mean). */
+export async function getItemsListForStaff(
+  tenantId: string,
+  staffUserId: string,
+  opts: { query?: string; kind?: ItemKind; lowStockThreshold?: number },
+  db: Queryable = sql as unknown as Queryable,
+): Promise<ItemsList> {
+  await authorizeStaffMember(tenantId, staffUserId, db);
+  const like = opts.query?.trim() ? `%${opts.query.trim()}%` : null;
+
+  const rows = await db<{ code: string; name: string; kind: string; on_hand: string; available: string }[]>`
+    select i.code, i.name, i.kind, coalesce(a.on_hand, 0) as on_hand, coalesce(a.available, 0) as available
+    from items i
+    left join v_available a on a.tenant_id = i.tenant_id and a.item_id = i.id
+    where i.tenant_id = ${tenantId}
+      ${opts.kind ? sql`and i.kind = ${opts.kind}` : sql``}
+      ${like ? sql`and (i.name ilike ${like} or i.code ilike ${like})` : sql``}
+      ${opts.lowStockThreshold != null ? sql`and coalesce(a.on_hand, 0) < ${opts.lowStockThreshold}` : sql``}
+    order by i.name`;
+
+  return {
+    items: rows.slice(0, ITEMS_LIST_LIMIT).map((r) => ({
+      code: r.code, name: r.name, kind: r.kind, on_hand: Number(r.on_hand), available: Number(r.available),
+    })),
+    total_matching: rows.length,
+    truncated: rows.length > ITEMS_LIST_LIMIT,
+  };
+}

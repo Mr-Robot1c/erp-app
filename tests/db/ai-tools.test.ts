@@ -83,4 +83,40 @@ describe("Bộ tool AI CB-2.2 — tách tenant CỨNG", () => {
       expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
     });
   });
+
+  describe("items-list", () => {
+    beforeAll(async () => {
+      await createItem(tenantA.tenantId, "AILIST-A1", { price: 1 });
+      const itemA2 = await createItem(tenantA.tenantId, "AILIST-A2", { price: 1 });
+      const whA2 = await createWarehouse(tenantA.tenantId, "AIWH-LIST-A");
+      await sql`insert into stock_moves (tenant_id, item_id, warehouse_id, qty, unit_cost)
+        values (${tenantA.tenantId}, ${itemA2}, ${whA2}, 3, 10)`;
+      // Cùng MÃ với A1 ở tenant B — không được lẫn vào kết quả của A.
+      await createItem(tenantB.tenantId, "AILIST-A1", { price: 1 });
+    });
+
+    it("chatbot bịa tenant_id → forbidden, KHÔNG trả danh sách của tenant khác", async () => {
+      const res = await callBridge("/api/ai/tools/items-list", {
+        tenant_id: tenantB.tenantId, staff_user_id: staffA.userId, query: "AILIST",
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it("nhân viên tenant A chỉ thấy mặt hàng CỦA TENANT A dù trùng mã với tenant B", async () => {
+      const res = await callBridge("/api/ai/tools/items-list", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, query: "AILIST",
+      });
+      expect(res.status).toBe(200);
+      expect(res.json.data.total_matching).toBe(2);
+      expect(res.json.data.items.map((i: { code: string }) => i.code).sort()).toEqual(["AILIST-A1", "AILIST-A2"]);
+    });
+
+    it("lọc tồn dưới ngưỡng chỉ trả mặt hàng của đúng tenant đang hỏi (cả 2 đều dưới 10: A1 chưa nhập=0, A2=3)", async () => {
+      const res = await callBridge("/api/ai/tools/items-list", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, query: "AILIST", low_stock_threshold: 10,
+      });
+      expect(res.status).toBe(200);
+      expect(res.json.data.items.map((i: { code: string }) => i.code).sort()).toEqual(["AILIST-A1", "AILIST-A2"]);
+    });
+  });
 });
