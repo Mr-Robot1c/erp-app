@@ -1,0 +1,86 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  addTenantMember, apiUrl, createItem, createTestTenant, createWarehouse, sql,
+  type TenantMember, type TestTenant,
+} from "./helper";
+
+const SECRET = process.env.ERP_CHATBOT_SHARED_SECRET ?? "test-erp-chatbot-secret";
+
+async function callBridge(path: string, body: unknown, secret = SECRET) {
+  const res = await fetch(apiUrl(path), {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-erp-chat-secret": secret },
+    body: JSON.stringify(body),
+  });
+  return { status: res.status, json: await res.json() };
+}
+
+describe("Bộ tool AI CB-2.2 — tách tenant CỨNG", () => {
+  let tenantA: TestTenant;
+  let tenantB: TestTenant;
+  let staffA: TenantMember;
+
+  beforeAll(async () => {
+    tenantA = await createTestTenant({ role: "admin" });
+    tenantB = await createTestTenant({ role: "admin" });
+    staffA = await addTenantMember(tenantA.tenantId, "sales");
+  });
+
+  afterAll(async () => {
+    await staffA?.cleanup();
+    await tenantA?.cleanup();
+    await tenantB?.cleanup();
+  });
+
+  describe("stock-status", () => {
+    const sameCode = "AITEST-01";
+    let itemA: string;
+    let itemBOnly: string;
+
+    beforeAll(async () => {
+      itemA = await createItem(tenantA.tenantId, sameCode, { price: 1000 });
+      const whA = await createWarehouse(tenantA.tenantId, "AIWH-A");
+      await sql`insert into stock_moves (tenant_id, item_id, warehouse_id, qty, unit_cost) values (${tenantA.tenantId}, ${itemA}, ${whA}, 5, 100)`;
+
+      // Cùng MÃ hàng ở tenant B, số lượng khác — bắt lỗi nếu truy vấn quên lọc tenant_id.
+      const itemB = await createItem(tenantB.tenantId, sameCode, { price: 1000 });
+      const whB = await createWarehouse(tenantB.tenantId, "AIWH-B");
+      await sql`insert into stock_moves (tenant_id, item_id, warehouse_id, qty, unit_cost) values (${tenantB.tenantId}, ${itemB}, ${whB}, 999, 100)`;
+
+      // Mã hàng CHỈ tồn tại ở tenant B.
+      itemBOnly = await createItem(tenantB.tenantId, "AITEST-B-ONLY", { price: 1000 });
+      await sql`insert into stock_moves (tenant_id, item_id, warehouse_id, qty, unit_cost) values (${tenantB.tenantId}, ${itemBOnly}, ${whB}, 3, 100)`;
+    });
+
+    it("thiếu/sai secret → unauthenticated", async () => {
+      const res = await callBridge("/api/ai/tools/stock-status", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, item_code: sameCode,
+      }, "not-the-real-secret");
+      expect(res.status).toBe(401);
+    });
+
+    it("nhân viên tenant A đọc đúng tồn CỦA TENANT A, không lẫn dù trùng MÃ HÀNG với tenant B", async () => {
+      const res = await callBridge("/api/ai/tools/stock-status", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, item_code: sameCode,
+      });
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({ ok: true, data: { on_hand: 5, available: 5, warehouses: [{ code: "AIWH-A", qty: 5 }] } });
+    });
+
+    it("chatbot bịa tenant_id (nhân viên tenant A cho tenant_id của tenant B) → forbidden", async () => {
+      const res = await callBridge("/api/ai/tools/stock-status", {
+        tenant_id: tenantB.tenantId, staff_user_id: staffA.userId, item_code: sameCode,
+      });
+      expect(res.status).toBe(403);
+      expect(res.json).toMatchObject({ ok: false, error: { code: "forbidden" } });
+    });
+
+    it("mã hàng CHỈ tồn tại ở tenant B → nhân viên tenant A tra bằng tenant_id của MÌNH nhận not_found", async () => {
+      const res = await callBridge("/api/ai/tools/stock-status", {
+        tenant_id: tenantA.tenantId, staff_user_id: staffA.userId, item_code: "AITEST-B-ONLY",
+      });
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({ ok: false, error: { code: "not_found" } });
+    });
+  });
+});
