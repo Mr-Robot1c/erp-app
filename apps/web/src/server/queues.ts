@@ -5,6 +5,7 @@ import { sql } from "./db";
 export type Queues = {
   sales: { quotePending: number; soDraft: number; soPending: number };
   warehouse: { toShip: number; toReceive: number; qcItems: number };
+  buying: { poPending: number };
   accounting: { invDraft: number; unmatched: number; payPending: number };
 };
 
@@ -23,11 +24,13 @@ export async function getQueues(tenantId: string): Promise<Queues> {
          where m.tenant_id = ${tenantId} and w.code = 'QC' group by m.item_id having sum(m.qty) > 0) q) as qc_items,
       (select count(*) from documents where tenant_id = ${tenantId} and doc_type = 'INV' and status = 'draft') as inv_draft,
       (select count(distinct receipt_id) from receipt_allocations where tenant_id = ${tenantId} and receivable_id is null and note = 'Ứng trước') as unmatched,
-      (select count(*) from documents where tenant_id = ${tenantId} and doc_type = 'PAY' and status = 'pending') as pay_pending`;
+      (select count(*) from documents where tenant_id = ${tenantId} and doc_type = 'PAY' and status = 'pending') as pay_pending,
+      (select count(*) from documents where tenant_id = ${tenantId} and doc_type = 'PO' and status = 'pending') as po_pending`;
   const n = (k: string) => Number(r[k]);
   return {
     sales: { quotePending: n("quote_pending"), soDraft: n("so_draft"), soPending: n("so_pending") },
     warehouse: { toShip: n("to_ship"), toReceive: n("to_receive"), qcItems: n("qc_items") },
+    buying: { poPending: n("po_pending") },
     accounting: { invDraft: n("inv_draft"), unmatched: n("unmatched"), payPending: n("pay_pending") },
   };
 }

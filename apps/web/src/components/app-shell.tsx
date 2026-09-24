@@ -1,11 +1,28 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import {
+  BookOpen,
+  Boxes,
+  ChevronRight,
+  ClipboardList,
+  LayoutDashboard,
+  ListChecks,
+  Settings,
+  ShoppingBag,
+  ShoppingCart,
+  Users,
+  Wrench,
+  History,
+  type LucideIcon,
+} from "lucide-react";
 import { can, ROLE_LABEL, canView, type Role, type View } from "@erp/core";
 import { SignOutButton } from "./sign-out-button";
 import { AIChatContextProvider } from "./ai-chat-context";
 import { AIChatWidget } from "./ai-chat-widget";
+import { useCachedFetch } from "@/lib/use-cached-fetch";
+import type { Queues } from "@/server/queues";
 
 type NavItem = {
   view: View | "team";
@@ -13,6 +30,7 @@ type NavItem = {
   href: string;
   built: boolean;
   note?: string;
+  icon: LucideIcon;
 };
 type NavGroup = { label: string; items: NavItem[] };
 
@@ -29,27 +47,27 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "LÀM VIỆC",
     items: [
-      { view: "dash", label: "Tổng quan", href: "/app", built: true },
-      { view: "tasks", label: "Việc cần làm", href: "/app/tasks", built: true },
+      { view: "dash", label: "Tổng quan", href: "/app", built: true, icon: LayoutDashboard },
+      { view: "tasks", label: "Việc cần làm", href: "/app/tasks", built: true, icon: ListChecks },
     ],
   },
   {
     label: "NGHIỆP VỤ",
     items: [
-      { view: "sales", label: "Bán hàng", href: "/app/sales", built: true },
-      { view: "buy", label: "Mua hàng", href: "/app/buy", built: true },
-      { view: "stock", label: "Kho", href: "/app/stock", built: true },
-      { view: "acc", label: "Kế toán", href: "/app/acc", built: true },
-      { view: "int", label: "Nội bộ", href: "/app/int", built: false, note: "lô 5.1" },
+      { view: "sales", label: "Bán hàng", href: "/app/sales", built: true, icon: ShoppingBag },
+      { view: "buy", label: "Mua hàng", href: "/app/buy", built: true, icon: ShoppingCart },
+      { view: "stock", label: "Kho", href: "/app/stock", built: true, icon: Boxes },
+      { view: "acc", label: "Kế toán", href: "/app/acc", built: true, icon: BookOpen },
+      { view: "int", label: "Nội bộ", href: "/app/int", built: false, icon: Wrench, note: "lô 5.1" },
     ],
   },
   {
     label: "QUẢN TRỊ",
     items: [
-      { view: "master", label: "Danh mục", href: "/app/master", built: true },
-      { view: "team", label: "Thành viên", href: "/app/team", built: true },
-      { view: "set", label: "Cài đặt", href: "/app/settings", built: true },
-      { view: "audit", label: "Nhật ký", href: "/app/audit", built: false },
+      { view: "master", label: "Danh mục", href: "/app/master", built: true, icon: ClipboardList },
+      { view: "team", label: "Thành viên", href: "/app/team", built: true, icon: Users },
+      { view: "set", label: "Cài đặt", href: "/app/settings", built: true, icon: Settings },
+      { view: "audit", label: "Nhật ký", href: "/app/audit", built: false, icon: History },
     ],
   },
 ];
@@ -64,6 +82,34 @@ const QUICK_ACTIONS: { action: "quote" | "rcpt" | "po" | "pay"; label: string; h
   { action: "po", label: "Lập đơn mua", href: "/app/buy?new=po" },
   { action: "pay", label: "Trả tiền NCC", href: "/app/buy?new=pay" },
 ];
+
+async function fetchQueues(): Promise<Queues> {
+  const res = await fetch("/api/dashboard/queues", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const body = await res.json();
+  if (!body.ok) throw new Error(body.error?.message ?? "Không lấy được số liệu");
+  return body.data as Queues;
+}
+
+/** Badge đếm theo phân hệ (03 mục I.2) — từ đúng dữ liệu queues (cache 30s dùng chung với thẻ việc), 0 thì ẩn. */
+function moduleBadges(q: Queues | undefined): Partial<Record<string, number>> {
+  if (!q) return {};
+  return {
+    sales: q.sales.quotePending + q.sales.soDraft + q.sales.soPending,
+    stock: q.warehouse.toShip + q.warehouse.toReceive + q.warehouse.qcItems,
+    buy: q.buying.poPending + q.accounting.payPending,
+    acc: q.accounting.invDraft + q.accounting.unmatched,
+  };
+}
+
+const ACC_VIEW_LABEL: Record<string, string> = {
+  debt: "Công nợ",
+  ledger: "Sổ cái",
+  balance: "Số dư tài khoản",
+  partner: "Sổ chi tiết đối tác",
+  opening: "Số dư đầu kỳ",
+  adjust: "Bút toán điều chỉnh",
+  period: "Khoá kỳ",
+};
 
 function pageTitleFor(pathname: string): string {
   for (const group of NAV_GROUPS) {
@@ -88,6 +134,9 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { data: queues } = useCachedFetch("dashboard:queues", fetchQueues);
+  const badges = moduleBadges(queues);
   const [quickOpen, setQuickOpen] = useState(false);
   const quickActions = QUICK_ACTIONS.filter((a) => can(role, a.action));
 
@@ -123,7 +172,15 @@ export function AppShell({
                       pathname === item.href ? "bg-[var(--side-on)] font-semibold text-white" : "text-[var(--side-ink)] hover:bg-white/10"
                     }`}
                   >
-                    {item.label}
+                    <span className="flex items-center gap-2">
+                      <item.icon size={16} strokeWidth={1.75} aria-hidden />
+                      {item.label}
+                    </span>
+                    {(badges[item.view] ?? 0) > 0 && (
+                      <span data-module-badge={item.view} className="ml-2 min-w-5 rounded-full bg-[var(--pop)] px-1.5 text-center text-[11px] font-semibold text-white tabular-nums">
+                        {badges[item.view]}
+                      </span>
+                    )}
                     {item.view === "tasks" && taskCount > 0 && (
                       <span id="task-badge" className="ml-2 min-w-5 rounded-full bg-[var(--pop)] px-1.5 text-center text-[11px] font-semibold text-white tabular-nums">
                         {taskCount}
@@ -135,7 +192,10 @@ export function AppShell({
                     key={item.href}
                     className="flex items-center justify-between rounded-[var(--r)] px-2.5 py-2 text-[13.5px] opacity-40"
                   >
-                    {item.label}
+                    <span className="flex items-center gap-2">
+                      <item.icon size={16} strokeWidth={1.75} aria-hidden />
+                      {item.label}
+                    </span>
                     {item.note && <span className="text-[10.5px]">{item.note}</span>}
                   </div>
                 ),
@@ -146,9 +206,17 @@ export function AppShell({
       </aside>
       <div className="flex flex-col">
         <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-[var(--line)] bg-[var(--sf)] px-5 py-3">
-          <span id="page-title" className="font-semibold">
-            {pageTitleFor(pathname)}
-          </span>
+          <nav id="page-title" aria-label="Breadcrumb" className="flex items-center gap-1 font-semibold">
+            {pathname === "/app/acc" ? (
+              <>
+                <span className="font-normal text-[var(--ink2)]">{pageTitleFor(pathname)}</span>
+                <ChevronRight size={14} className="text-[var(--ink2)]" aria-hidden />
+                <span>{ACC_VIEW_LABEL[searchParams.get("view") ?? "debt"] ?? ACC_VIEW_LABEL.debt}</span>
+              </>
+            ) : (
+              pageTitleFor(pathname)
+            )}
+          </nav>
           <span className="flex-1" />
 
           {quickActions.length > 0 && (

@@ -44,6 +44,7 @@ describe("thẻ việc theo bộ phận (lô 3.6) — công thức đếm mục 
     await doc(tenant, "SO", "confirmed");
     await sql`insert into reservations (tenant_id, document_id, line_no, item_id, qty) values (${tenant.tenantId}, ${so1}, 1, ${item}, 2), (${tenant.tenantId}, ${so2}, 1, ${item}, 1)`;
     // Kho — chờ nhận: PO confirmed chưa nhận (đếm), PO partial chưa đủ (đếm), PO đã nhận đủ / đóng thiếu (không đếm)
+    await doc(tenant, "PO", "pending"); // ĐM chờ duyệt: đếm ở badge Mua hàng (UI-2 I.2), không thuộc ô kho nào
     await doc(tenant, "PO", "confirmed");
     await doc(tenant, "PO", "partial", { receivedAll: false });
     await doc(tenant, "PO", "partial", { receivedAll: true });
@@ -81,6 +82,7 @@ describe("thẻ việc theo bộ phận (lô 3.6) — công thức đếm mục 
     expect(r.json.data).toEqual({
       sales: { quotePending: 1, soDraft: 1, soPending: 1 },
       warehouse: { toShip: 2, toReceive: 2, qcItems: 1 },
+      buying: { poPending: 1 },
       accounting: { invDraft: 2, unmatched: 1, payPending: 1 },
     });
   });
@@ -93,5 +95,6 @@ describe("thẻ việc theo bộ phận (lô 3.6) — công thức đếm mục 
     expect(r.json.data.sales.quotePending).toBe(1);
     expect(r.json.data.accounting.invDraft).toBe(1);
     expect(r.json.data.warehouse).toEqual({ toShip: 0, toReceive: 0, qcItems: 0 });
+    expect(r.json.data.buying).toEqual({ poPending: 0 });
   });
 });
