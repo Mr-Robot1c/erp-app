@@ -6,6 +6,7 @@ import { BalanceView, LedgerView, PartnerLedgerView } from "@/components/ledger-
 import { ExportButton } from "@/components/export-button";
 import { OpeningBalanceForm } from "@/components/opening-balance-form";
 import { JournalAdjustForm, MatchReceiptActions, PeriodManager } from "@/components/period-tools";
+import { PayableTable, ReceivableTable } from "@/components/debt-tables";
 
 /** Công nợ đơn giản (lô 2.5): phải thu còn mở, tiền ứng trước, và hàng chờ khớp tay (phiếu thu không mã / dư thành ứng trước).
  * Báo cáo công nợ đầy đủ (tuổi nợ, nhắc, chặn) ở GĐ4. */
@@ -50,7 +51,6 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
 
   const open = (recs ?? []).filter((r) => Number(r.amount) - Number(r.paid) > 0);
   const KIND: Record<string, string> = { invoice: "Hoá đơn", deposit: "Cọc", renewal: "Gia hạn" };
-  const th = "px-3 py-2 text-left";
 
   return (
     <div className="max-w-4xl">
@@ -70,7 +70,7 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
             href={`/app/acc?view=${key}`}
             data-view={key}
             className={`rounded-full border px-3 py-1 text-sm ${
-              view === key ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--bg)]" : "border-[var(--line)] bg-[var(--sf)]"
+              view === key ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
             }`}
           >
             {label}
@@ -94,67 +94,30 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
 
 
       <h2 className="mt-5 text-sm font-semibold">Khoản phải thu còn mở</h2>
-      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
-        <table className="w-full text-sm" id="ar-table">
-          <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
-            <tr>
-              <th className={th}>Khách hàng</th>
-              <th className={th}>Loại</th>
-              <th className={th}>Hạn</th>
-              <th className={`${th} text-right`}>Còn phải thu</th>
-            </tr>
-          </thead>
-          <tbody>
-            {open.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-3 py-4 text-[var(--ink2)]">
-                  Không có khoản nào.
-                </td>
-              </tr>
-            )}
-            {open.map((r) => (
-              <tr key={r.id as string} className="border-t border-[var(--line)]">
-                <td className="px-3 py-2">{pname.get(r.partner_id as string) ?? "—"}</td>
-                <td className="px-3 py-2">{KIND[r.kind as string] ?? (r.kind as string)}</td>
-                <td className="px-3 py-2">
-                  {(r.due_date as string | null) ?? "—"}
-                  {r.overdue && <span className="pill cancelled ml-2">Quá hạn</span>}
-                </td>
-                <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(r.amount) - Number(r.paid))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ReceivableTable
+        open={open.map((r) => ({
+          id: r.id as string,
+          kind: r.kind as string,
+          partner_id: r.partner_id as string,
+          amount: Number(r.amount),
+          paid: Number(r.paid),
+          due_date: r.due_date as string | null,
+          overdue: Boolean(r.overdue),
+        }))}
+        pname={pname}
+      />
 
       <h2 className="mt-5 text-sm font-semibold">Khoản phải trả còn mở</h2>
-      <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
-        <table className="w-full text-sm" id="ap-table">
-          <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
-            <tr>
-              <th className={th}>Nhà cung cấp</th>
-              <th className={th}>Hạn</th>
-              <th className={`${th} text-right`}>Còn phải trả</th>
-            </tr>
-          </thead>
-          <tbody>
-            {openPay.length === 0 && (
-              <tr>
-                <td colSpan={3} className="px-3 py-4 text-[var(--ink2)]">
-                  Không có khoản nào.
-                </td>
-              </tr>
-            )}
-            {openPay.map((p) => (
-              <tr key={p.id as string} className="border-t border-[var(--line)]">
-                <td className="px-3 py-2">{pname.get(p.partner_id as string) ?? "—"}</td>
-                <td className="px-3 py-2">{(p.due_date as string | null) ?? "—"}</td>
-                <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(p.amount) - Number(p.paid))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PayableTable
+        openPay={openPay.map((p) => ({
+          id: p.id as string,
+          partner_id: p.partner_id as string,
+          amount: Number(p.amount),
+          paid: Number(p.paid),
+          due_date: p.due_date as string | null,
+        }))}
+        pname={pname}
+      />
 
       <h2 className="mt-5 text-sm font-semibold">Tiền khách ứng trước</h2>
       <div className="mt-2 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">

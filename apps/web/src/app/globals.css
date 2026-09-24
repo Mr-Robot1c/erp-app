@@ -20,29 +20,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Bản sắc thị giác (playbook/03-chuan-giao-dien.md mục H) — MỘT chỗ đặt token; component chỉ dùng biến, cấm hex rải rác.
-   Nền sáng cố định, dark mode "Để sau". */
+/* Bản sắc thị giác (playbook/03-chuan-giao-dien.md mục H, SỬA 24/09 — học ngôn ngữ Freightek) — MỘT
+   chỗ đặt token; component chỉ dùng biến, cấm hex rải rác. Nền sáng cố định, dark mode "Để sau". */
 :root {
-  --bg: #f6f4ef;
+  --bg: #f1f2f6;
   --sf: #ffffff;
-  --ink: #1e2a26;
-  --ink2: #66736d;
-  --line: #dfdcd3;
-  --acc: #0e6b5c;
-  --accs: #e2f0ec;
-  --side: #132a24;
-  --side-ink: #d9e4df;
-  --side-on: #1e4038;
-  --ok: #2e6b4f;
-  --oks: #e3f0e9;
-  --warn: #b45309;
-  --warns: #fbeedd;
-  --bad: #a83a2e;
-  --bads: #f8e4e1;
-  --ext: #7a5a1e;
-  --exts: #f5ecd9;
-  --lane: #f8f7f3;
-  --r: 6px;
+  --ink: #1f2430;
+  --ink2: #7a8194;
+  --line: #e4e7ee;
+  --acc: #2f80ed;
+  --accs: #eaf2fd;
+  --side: #161821;
+  --side-ink: #e8eaf0;
+  --side-on: #2f80ed;
+  --pop: #f2994a;
+  --pops: #fdf0e3;
+  --ok: #27ae60;
+  --oks: #e9f7ef;
+  --warn: #e67e22;
+  --warns: #fdf0e3;
+  --bad: #eb5757;
+  --bads: #fdeaea;
+  --lane: #f6f7fb;
+  --r: 8px;
 }
 
 .pill {

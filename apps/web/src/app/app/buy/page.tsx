@@ -6,7 +6,7 @@ import { QueueCardsClient } from "@/components/queue-cards-client";
 import type { DocRow } from "@/components/doc-detail";
 import { DOC_COLUMNS } from "@/lib/doc-columns";
 
-export default async function BuyPage({ searchParams }: { searchParams: Promise<{ tab?: string; status?: string; open?: string }> }) {
+export default async function BuyPage({ searchParams }: { searchParams: Promise<{ tab?: string; status?: string; open?: string; new?: string }> }) {
   const params = await searchParams;
   const supabase = await createClient();
   const {
@@ -34,10 +34,11 @@ export default async function BuyPage({ searchParams }: { searchParams: Promise<
         <QueueCardsClient role={membership.role as Role} only={["warehouse", "accounting"]} />
       </div>
       <DocBoard
-      key={`${params.tab ?? ""}-${params.status ?? ""}-${params.open ?? ""}`}
+      key={`${params.tab ?? ""}-${params.status ?? ""}-${params.open ?? ""}-${params.new ?? ""}`}
       initialOpen={params.open}
       initialTab={params.tab}
       initialStatus={params.status}
+      initialNew={params.new === "po" || params.new === "pay" ? params.new : undefined}
       module="buy"
       role={membership.role as Role}
       userId={user.id}

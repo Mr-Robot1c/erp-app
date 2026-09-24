@@ -7,6 +7,7 @@ import { Modal, StatusPill, btnGhost, btnPrimary, callApi, inputCls, newKey, sta
 import { LinesEditor, emptyLine, linesTotal, type EditorLine, type LineItemOption } from "./lines-editor";
 import { PartnerPicker, type PartnerOption } from "./partner-picker";
 import { useAIChatContext } from "./ai-chat-context";
+import { PaginationFooter, usePagination } from "./pagination";
 
 type PartnerRow = PartnerOption & { kind: string };
 type Tab = { key: string; label: string };
@@ -53,12 +54,15 @@ export function DocBoard({
   initialTab,
   initialStatus,
   initialOpen,
+  initialNew,
 }: {
   /** Số chứng từ mở sẵn chi tiết (truy ngược từ sổ cái): tự chọn đúng tab. */
   initialOpen?: string;
   initialTab?: string;
   /** Pill lọc chọn sẵn (từ thẻ việc): 1 trạng thái hoặc nhiều, cách nhau dấu phẩy. */
   initialStatus?: string;
+  /** Mở sẵn form tạo mới (nút "+" nhanh trên header, 03 mục H) — từ query `?new=`. */
+  initialNew?: "quote" | "receipt" | "po" | "pay";
   module: BoardModule;
   role: Role;
   userId: string;
@@ -77,10 +81,10 @@ export function DocBoard({
   const [status, setStatus] = useState<DocStatus | "all">(initialSet.length === 1 ? initialSet[0] : "all");
   const [statusSet, setStatusSet] = useState<DocStatus[]>(initialSet.length > 1 ? initialSet : []);
   const [q, setQ] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [receiving, setReceiving] = useState(false);
-  const [paying, setPaying] = useState(false);
-  const [buying, setBuying] = useState(false);
+  const [creating, setCreating] = useState(initialNew === "quote" && can(role, "quote"));
+  const [receiving, setReceiving] = useState(initialNew === "receipt" && can(role, "rcpt"));
+  const [paying, setPaying] = useState(initialNew === "pay" && can(role, "pay"));
+  const [buying, setBuying] = useState(initialNew === "po" && can(role, "po"));
   const [openId, setOpenId] = useState<string | null>(openDoc0?.id ?? null);
 
   const partnerName = (id: string | null) => partners.find((p) => p.id === id)?.name ?? "—";
@@ -96,6 +100,7 @@ export function DocBoard({
   const rows = ofTab
     .filter((d) => (statusSet.length ? statusSet.includes(d.status) : status === "all" || d.status === status))
     .filter((d) => !term || d.doc_no.toLowerCase().includes(term) || partnerName(d.partner_id).toLowerCase().includes(term));
+  const { pageRows, page, setPage, pageCount, total, pageSize } = usePagination(rows, 10);
 
   const open = docs.find((d) => d.id === openId) ?? null;
   useEffect(() => {
@@ -140,7 +145,7 @@ export function DocBoard({
             <button
               key={t.key}
               className={`rounded-full border px-3 py-1 text-sm ${
-                tab === t.key ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--bg)]" : "border-[var(--line)] bg-[var(--sf)]"
+                tab === t.key ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
               }`}
               onClick={() => setTab(t.key)}
             >
@@ -166,7 +171,7 @@ export function DocBoard({
           <button
             key={s}
             className={`rounded-full border px-2.5 py-0.5 text-[12.5px] ${
-              status === s && !statusSet.length ? "border-[var(--acc)] bg-[var(--accs)] text-[var(--acc)]" : "border-[var(--line)] bg-[var(--sf)]"
+              status === s && !statusSet.length ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
             }`}
             onClick={() => {
               setStatusSet([]);
@@ -198,7 +203,7 @@ export function DocBoard({
                 </td>
               </tr>
             )}
-            {rows.map((d) => (
+            {pageRows.map((d) => (
               <tr
                 key={d.id}
                 className="cursor-pointer border-t border-[var(--line)] hover:bg-[var(--lane)]"
@@ -217,6 +222,7 @@ export function DocBoard({
             ))}
           </tbody>
         </table>
+        <PaginationFooter total={total} page={page} pageCount={pageCount} pageSize={pageSize} onPageChange={setPage} />
       </div>
 
       {creating && (

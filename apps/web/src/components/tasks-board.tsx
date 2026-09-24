@@ -77,7 +77,7 @@ export function TasksBoard({
 
   const openDoc = docs.find((d) => d.id === openId) ?? null;
   const chip = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-sm ${active ? "border-[var(--acc)] bg-[var(--accs)] text-[var(--acc)]" : "border-[var(--line)] bg-[var(--sf)]"}`;
+    `rounded-full border px-3 py-1 text-sm ${active ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`;
 
   return (
     <div className="max-w-2xl">

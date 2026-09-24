@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { can, type Role } from "@erp/core";
 import { StockActions } from "@/components/stock-actions";
-import { KIND_LABEL_ITEM } from "@/lib/item-kinds";
+import { StockTable } from "@/components/stock-table";
 import { createClient } from "@/server/supabase";
 
 export default async function StockPage() {
@@ -41,45 +41,21 @@ export default async function StockPage() {
           />
         )}
       </div>
-      <div className="mt-3 overflow-x-auto rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)]">
-        <table className="w-full text-sm" id="stock-table">
-          <thead className="bg-[var(--lane)] text-[11px] tracking-wide text-[var(--ink2)] uppercase">
-            <tr>
-              <th className="px-3 py-2 text-left">Mặt hàng</th>
-              <th className="px-3 py-2 text-left">Loại</th>
-              <th className="px-3 py-2 text-right">Tồn</th>
-              <th className="px-3 py-2 text-right">Đang giữ</th>
-              <th className="px-3 py-2 text-right">Khả dụng</th>
-              <th className="px-3 py-2 text-right">Chờ kiểm</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(items ?? []).length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-3 py-4 text-[var(--ink2)]">
-                  Chưa có mặt hàng nào.
-                </td>
-              </tr>
-            )}
-            {(items ?? []).map((it) => {
-              const a = byItem.get(it.id as string);
-              const avl = Number(a?.available ?? 0);
-              return (
-                <tr key={it.id as string} className="border-t border-[var(--line)]" data-item-code={it.code as string}>
-                  <td className="px-3 py-2">
-                    {it.name as string} <span className="font-mono text-[11.5px] text-[var(--ink2)]">{it.code as string}</span>
-                  </td>
-                  <td className="px-3 py-2">{KIND_LABEL_ITEM[it.kind as string] ?? (it.kind as string)}</td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums">{Number(a?.on_hand ?? 0)}</td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums">{Number(a?.reserved ?? 0)}</td>
-                  <td className={`px-3 py-2 text-right font-mono tabular-nums ${avl <= 0 ? "text-[var(--bad)]" : ""}`}>{avl}</td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums text-[var(--ink2)]">{qcQty.get(it.id as string) ?? 0}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <StockTable
+        rows={(items ?? []).map((it) => {
+          const a = byItem.get(it.id as string);
+          return {
+            id: it.id as string,
+            code: it.code as string,
+            name: it.name as string,
+            kind: it.kind as string,
+            onHand: Number(a?.on_hand ?? 0),
+            reserved: Number(a?.reserved ?? 0),
+            available: Number(a?.available ?? 0),
+            qc: qcQty.get(it.id as string) ?? 0,
+          };
+        })}
+      />
     </div>
   );
 }
