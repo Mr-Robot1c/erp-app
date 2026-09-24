@@ -117,7 +117,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           id="btn-save-settings"
           type="submit"
           disabled={busy}
-          className="self-start rounded-[var(--r)] bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="self-start rounded-[var(--r)] bg-[var(--acc-fill)] px-3 py-2 font-medium text-white disabled:opacity-50"
         >
           Lưu
         </button>

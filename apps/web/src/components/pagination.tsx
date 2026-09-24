@@ -44,7 +44,7 @@ export function PaginationFooter({
             type="button"
             data-page={p}
             className={`flex h-6 w-6 items-center justify-center rounded text-[12px] ${
-              p === page ? "bg-[var(--acc)] font-medium text-white" : "border border-[var(--line)] bg-[var(--sf)] text-[var(--ink)]"
+              p === page ? "bg-[var(--acc-fill)] font-medium text-white" : "border border-[var(--line)] bg-[var(--sf)] text-[var(--ink)]"
             }`}
             onClick={() => onPageChange(p)}
           >

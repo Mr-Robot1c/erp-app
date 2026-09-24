@@ -56,6 +56,6 @@ export async function callApi(url: string, body: unknown, idempotencyKey?: strin
 }
 
 export const btnPrimary =
-  "rounded-[var(--r)] bg-[var(--acc)] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50";
+  "rounded-[var(--r)] bg-[var(--acc-fill)] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50";
 export const btnGhost = "rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-3 py-1.5 text-sm disabled:opacity-50";
 export const inputCls = "w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] px-2.5 py-1.5 text-sm";

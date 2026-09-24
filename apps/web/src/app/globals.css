@@ -26,13 +26,14 @@ body {
   --bg: #f1f2f6;
   --sf: #ffffff;
   --ink: #1f2430;
-  --ink2: #7a8194;
+  --ink2: #5f6775;
   --line: #e4e7ee;
-  --acc: #2f80ed;
+  --acc: #2470d8;
+  --acc-fill: #2470d8; /* nền xanh + chữ trắng (nút chính, pill active, trang hiện tại, sidebar active) — DÙNG CHUNG 2 theme, không định nghĩa lại ở dark */
   --accs: #eaf2fd;
   --side: #161821;
   --side-ink: #e8eaf0;
-  --side-on: #2f80ed;
+  --side-on: var(--acc-fill);
   --pop: #f2994a;
   --pops: #fdf0e3;
   --ok: #27ae60;
@@ -73,7 +74,7 @@ body {
   --accs: #1e2c46;
   --side: #0e1016;
   --side-ink: #e8eaf0;
-  --side-on: #2f80ed;
+  --side-on: var(--acc-fill);
   --pop: #f2994a;
   --pops: #33261a;
   --ok: #2fbf71;

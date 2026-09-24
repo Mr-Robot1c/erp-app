@@ -145,7 +145,7 @@ export function DocBoard({
             <button
               key={t.key}
               className={`rounded-full border px-3 py-1 text-sm ${
-                tab === t.key ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
+                tab === t.key ? "border-[var(--acc-fill)] bg-[var(--acc-fill)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
               }`}
               onClick={() => setTab(t.key)}
             >
@@ -171,7 +171,7 @@ export function DocBoard({
           <button
             key={s}
             className={`rounded-full border px-2.5 py-0.5 text-[12.5px] ${
-              status === s && !statusSet.length ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
+              status === s && !statusSet.length ? "border-[var(--acc-fill)] bg-[var(--acc-fill)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
             }`}
             onClick={() => {
               setStatusSet([]);

@@ -105,7 +105,7 @@ export function OnboardingForm({ email }: { email: string }) {
           id="btn-register"
           type="submit"
           disabled={busy}
-          className="rounded-[var(--r)] bg-[var(--acc)] px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded-[var(--r)] bg-[var(--acc-fill)] px-3 py-2 font-medium text-white disabled:opacity-50"
         >
           Hoàn tất đăng ký
         </button>

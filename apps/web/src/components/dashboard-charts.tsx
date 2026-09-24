@@ -74,7 +74,7 @@ export function DashboardCharts({ showMoney }: { showMoney: boolean }) {
           type="button"
           data-months={m}
           onClick={() => setMonths(m)}
-          className={`rounded-full border px-2.5 py-0.5 text-[12px] ${months === m ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`}
+          className={`rounded-full border px-2.5 py-0.5 text-[12px] ${months === m ? "border-[var(--acc-fill)] bg-[var(--acc-fill)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`}
         >
           {m} tháng
         </button>

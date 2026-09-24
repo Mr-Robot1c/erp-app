@@ -89,7 +89,7 @@ export function MasterBoard({
             type="button"
             data-tab={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-[var(--r)] border px-3 py-1.5 text-sm ${tab === t.key ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`}
+            className={`rounded-[var(--r)] border px-3 py-1.5 text-sm ${tab === t.key ? "border-[var(--acc-fill)] bg-[var(--acc-fill)] text-white" : "border-[var(--line)] bg-[var(--sf)]"}`}
           >
             {t.label} ({t.n})
           </button>

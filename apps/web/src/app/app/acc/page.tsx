@@ -70,7 +70,7 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
             href={`/app/acc?view=${key}`}
             data-view={key}
             className={`rounded-full border px-3 py-1 text-sm ${
-              view === key ? "border-[var(--acc)] bg-[var(--acc)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
+              view === key ? "border-[var(--acc-fill)] bg-[var(--acc-fill)] text-white" : "border-[var(--line)] bg-[var(--sf)]"
             }`}
           >
             {label}
