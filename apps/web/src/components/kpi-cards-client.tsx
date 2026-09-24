@@ -40,17 +40,29 @@ export function KpiCardsClient({ ym, showMoney, periodLocked }: { ym: string; sh
       ]
     : [{ key: "tasks", label: "Việc treo", value: String(kpis.openTasks), href: "/app/tasks" }];
 
+  // Chấm trạng thái (03 mục I.6) CHỈ khi có ngưỡng rõ: quá hạn > 0 → đỏ; việc treo > 10 → cam. Không bịa "mục tiêu".
+  const dotOf = (key: string): { tone: "bad" | "warn"; title: string } | null =>
+    key === "overdue" && kpis.overdueCount > 0
+      ? { tone: "bad", title: "Có hoá đơn quá hạn" }
+      : key === "tasks" && kpis.openTasks > 10
+        ? { tone: "warn", title: "Việc treo nhiều (hơn 10)" }
+        : null;
+
   return (
     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4" id="kpi-cards">
-      {cards.map((c) => (
-        <Link key={c.key} href={c.href} data-kpi={c.key} className="block rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-3 hover:border-[var(--acc)]">
+      {cards.map((c) => {
+        const dot = dotOf(c.key);
+        return (
+        <Link key={c.key} href={c.href} data-kpi={c.key} className="relative block rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-3 hover:border-[var(--acc)]">
+          {dot && <span data-kpi-dot={dot.tone} title={dot.title} className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full" style={{ background: `var(--${dot.tone})` }} />}
           <div className="text-[11px] tracking-wide text-[var(--ink2)] uppercase">{c.label}</div>
           <div className="mt-0.5 text-[22px] font-semibold tabular-nums" data-value>
             {c.value}
           </div>
           {c.note && <div className="text-[11.5px] text-[var(--ink2)]">{c.note}</div>}
         </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -202,6 +202,11 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     allowed: [...ROLES],
   },
   {
+    name: "POST /api/dashboard/charts",
+    call: (token) => post("/api/dashboard/charts", token, { months: 3 }),
+    allowed: [...ROLES], // đếm chứng từ: mọi vai; doanh thu tự ẩn (null) với vai không xem được Kế toán
+  },
+  {
     name: "POST /api/search/documents",
     call: (token) => post("/api/search/documents", token, { q: "BG" }),
     allowed: [...ROLES], // tìm chứng từ toàn cục: mọi vai, kết quả luôn giới hạn theo tenant của session
