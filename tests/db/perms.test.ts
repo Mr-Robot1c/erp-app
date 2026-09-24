@@ -197,6 +197,16 @@ const CASES: { name: string; call: (token: string) => Promise<{ status: number; 
     allowed: [...ROLES], // đọc-đếm: mọi vai trong tenant (staff xem chỉ-đọc)
   },
   {
+    name: "POST /api/dashboard/summary",
+    call: (token) => post("/api/dashboard/summary", token, { ym: "2026-01" }),
+    allowed: [...ROLES],
+  },
+  {
+    name: "POST /api/search/documents",
+    call: (token) => post("/api/search/documents", token, { q: "BG" }),
+    allowed: [...ROLES], // tìm chứng từ toàn cục: mọi vai, kết quả luôn giới hạn theo tenant của session
+  },
+  {
     name: "POST /api/onboarding/opening-balance",
     call: (token) => post("/api/onboarding/opening-balance", token, { cash: { c111: 1000, c112: 0 } }, { "idempotency-key": randomUUID() }),
     allowed: ["admin", "chief_accountant"],

@@ -21,6 +21,7 @@ import { can, ROLE_LABEL, canView, type Role, type View } from "@erp/core";
 import { SignOutButton } from "./sign-out-button";
 import { AIChatContextProvider } from "./ai-chat-context";
 import { AIChatWidget } from "./ai-chat-widget";
+import { GlobalSearch } from "./global-search";
 import { useCachedFetch } from "@/lib/use-cached-fetch";
 import type { Queues } from "@/server/queues";
 
@@ -217,7 +218,9 @@ export function AppShell({
               pageTitleFor(pathname)
             )}
           </nav>
-          <span className="flex-1" />
+          <div className="flex flex-1 justify-center">
+            <GlobalSearch />
+          </div>
 
           {quickActions.length > 0 && (
             <div className="relative">
