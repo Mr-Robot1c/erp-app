@@ -17,12 +17,19 @@ export const metadata: Metadata = {
   description: "Hệ thống ERP cho mọi doanh nghiệp",
 };
 
+// Đặt data-theme TRƯỚC khi vẽ để không nháy sáng→tối; mặc định sáng, chỉ bật tối khi người dùng đã chọn (erp-theme=dark).
+const THEME_BOOT = `try{if(localStorage.getItem("erp-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

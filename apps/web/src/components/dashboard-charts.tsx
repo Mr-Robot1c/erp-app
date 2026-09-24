@@ -85,7 +85,7 @@ export function DashboardCharts({ showMoney }: { showMoney: boolean }) {
   return (
     <div className={`mt-4 grid gap-3 ${showMoney ? "lg:grid-cols-2" : ""}`}>
       <Card id="chart-docs" title="Chứng từ theo loại và trạng thái" right={toggle}>
-        <div className="h-60">
+        <div className="h-64">
           {!data ? (
             <div className="h-full animate-pulse rounded-[var(--r)] bg-[var(--lane)]" />
           ) : docRows.length === 0 ? (
@@ -94,7 +94,7 @@ export function DashboardCharts({ showMoney }: { showMoney: boolean }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={docRows} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                 <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={{ stroke: "var(--line)" }} interval={0} />
+                <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={{ stroke: "var(--line)" }} interval={0} angle={-30} textAnchor="end" height={70} />
                 <YAxis allowDecimals={false} tick={axisTick} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--lane)" }} />
                 {SERIES.map((s) => (
@@ -116,7 +116,7 @@ export function DashboardCharts({ showMoney }: { showMoney: boolean }) {
 
       {showMoney && (
         <Card id="chart-revenue" title="Doanh thu 6 tháng (chưa thuế)">
-          <div className="h-60">
+          <div className="h-64">
             {!data || !data.revenue ? (
               <div className="h-full animate-pulse rounded-[var(--r)] bg-[var(--lane)]" />
             ) : (

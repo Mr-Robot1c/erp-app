@@ -53,8 +53,34 @@ body {
   border: 1px solid var(--line);
   white-space: nowrap;
 }
-.pill.draft { color: var(--ink2); }
-.pill.pending { background: var(--warns); color: var(--warn); border-color: transparent; }
-.pill.confirmed, .pill.partial { background: var(--accs); color: var(--acc); border-color: transparent; }
-.pill.done { background: var(--oks); color: var(--ok); border-color: transparent; }
-.pill.cancelled { background: var(--bads); color: var(--bad); border-color: transparent; }
+/* Chữ pill pha thêm --ink (tối hơn ở nền sáng, sáng hơn ở nền tối) để đạt tương phản AA ở CẢ hai theme mà không thêm biến. */
+.pill.draft { color: color-mix(in srgb, var(--ink2) 55%, var(--ink)); }
+.pill.pending { background: var(--warns); color: color-mix(in srgb, var(--warn) 55%, var(--ink)); border-color: transparent; }
+.pill.confirmed, .pill.partial { background: var(--accs); color: color-mix(in srgb, var(--acc) 65%, var(--ink)); border-color: transparent; }
+.pill.done { background: var(--oks); color: color-mix(in srgb, var(--ok) 55%, var(--ink)); border-color: transparent; }
+.pill.cancelled { background: var(--bads); color: color-mix(in srgb, var(--bad) 60%, var(--ink)); border-color: transparent; }
+
+/* Dark mode (playbook/03 mục H2) — CHỈ là lớp phủ: định nghĩa lại ĐÚNG các biến sẵn có, không thêm biến riêng cho dark.
+   Bật bằng data-theme="dark" trên <html> (nút toggle ở header, lưu localStorage `erp-theme`); mặc định sáng, KHÔNG theo prefers-color-scheme. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12141c;
+  --sf: #1b1e29;
+  --ink: #e8eaf2;
+  --ink2: #8a91a5;
+  --line: #2a2e3d;
+  --acc: #4c93f5;
+  --accs: #1e2c46;
+  --side: #0e1016;
+  --side-ink: #e8eaf0;
+  --side-on: #2f80ed;
+  --pop: #f2994a;
+  --pops: #33261a;
+  --ok: #2fbf71;
+  --oks: #16301f;
+  --warn: #f0932b;
+  --warns: #33261a;
+  --bad: #f16a6a;
+  --bads: #3a2023;
+  --lane: #212536;
+}

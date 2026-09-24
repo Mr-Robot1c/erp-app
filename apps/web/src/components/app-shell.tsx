@@ -22,6 +22,7 @@ import { SignOutButton } from "./sign-out-button";
 import { AIChatContextProvider } from "./ai-chat-context";
 import { AIChatWidget } from "./ai-chat-widget";
 import { GlobalSearch } from "./global-search";
+import { ThemeToggle } from "./theme-toggle";
 import { useCachedFetch } from "@/lib/use-cached-fetch";
 import type { Queues } from "@/server/queues";
 
@@ -178,12 +179,12 @@ export function AppShell({
                       {item.label}
                     </span>
                     {(badges[item.view] ?? 0) > 0 && (
-                      <span data-module-badge={item.view} className="ml-2 min-w-5 rounded-full bg-[var(--pop)] px-1.5 text-center text-[11px] font-semibold text-white tabular-nums">
+                      <span data-module-badge={item.view} className="ml-2 min-w-5 rounded-full bg-[var(--pop)] px-1.5 text-center text-[11px] font-semibold text-[var(--side)] tabular-nums">
                         {badges[item.view]}
                       </span>
                     )}
                     {item.view === "tasks" && taskCount > 0 && (
-                      <span id="task-badge" className="ml-2 min-w-5 rounded-full bg-[var(--pop)] px-1.5 text-center text-[11px] font-semibold text-white tabular-nums">
+                      <span id="task-badge" className="ml-2 min-w-5 rounded-full bg-[var(--pop)] px-1.5 text-center text-[11px] font-semibold text-[var(--side)] tabular-nums">
                         {taskCount}
                       </span>
                     )}
@@ -228,7 +229,7 @@ export function AppShell({
                 id="btn-quick-actions"
                 type="button"
                 aria-label="Hành động nhanh"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--pop)] text-lg leading-none text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--pop)] text-lg leading-none text-[var(--side)]"
                 onClick={() => setQuickOpen((v) => !v)}
               >
                 +
@@ -253,6 +254,8 @@ export function AppShell({
             </div>
           )}
 
+          <ThemeToggle />
+
           <Link
             href="/app/tasks"
             aria-label="Việc cần làm"
@@ -260,7 +263,7 @@ export function AppShell({
           >
             🔔
             {taskCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-[var(--bad)] px-1 text-center text-[10px] font-semibold text-white tabular-nums">
+              <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-[var(--bad)] px-1 text-center text-[10px] font-semibold text-[var(--side)] tabular-nums">
                 {taskCount}
               </span>
             )}

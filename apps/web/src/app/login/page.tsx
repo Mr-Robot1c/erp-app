@@ -34,9 +34,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto mt-24 w-full max-w-sm rounded-[var(--r)] border border-zinc-200 bg-white p-6 shadow-sm">
+    <main className="mx-auto mt-24 w-full max-w-sm rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-6 shadow-sm">
       <h1 className="text-xl font-bold">ERP — đăng nhập</h1>
-      <p className="mt-1 text-sm text-zinc-500">Tài khoản email riêng của hệ thống.</p>
+      <p className="mt-1 text-sm text-[var(--ink2)]">Tài khoản email riêng của hệ thống.</p>
       <form
         className="mt-4 flex flex-col gap-3"
         onSubmit={(e) => {
@@ -52,7 +52,7 @@ export default function LoginPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-[var(--r)] border border-zinc-300 px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -64,7 +64,7 @@ export default function LoginPage() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-[var(--r)] border border-zinc-300 px-3 py-2"
+            className="mt-1 w-full rounded-[var(--r)] border border-[var(--line)] px-3 py-2"
           />
         </label>
         {msg && <p className="text-sm text-red-600">{msg}</p>}
@@ -81,7 +81,7 @@ export default function LoginPage() {
           type="button"
           disabled={busy}
           onClick={() => void submit("up")}
-          className="rounded-[var(--r)] border border-zinc-300 px-3 py-2 disabled:opacity-50"
+          className="rounded-[var(--r)] border border-[var(--line)] px-3 py-2 disabled:opacity-50"
         >
           Đăng ký tài khoản mới
         </button>
