@@ -101,7 +101,7 @@ export function QueueCards({ queues, role, only }: { queues: Queues; role: Role;
                 return (
                   <li key={r.label} data-row={r.label}>
                     {linkable(r) ? (
-                      <Link href={r.href} className={`${cls} hover:bg-white/60`}>
+                      <Link href={r.href} className={`${cls} hover:bg-[var(--sf)]`}>
                         {inner}
                       </Link>
                     ) : (
