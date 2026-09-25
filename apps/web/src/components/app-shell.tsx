@@ -23,6 +23,7 @@ import { AIChatContextProvider } from "./ai-chat-context";
 import { AIChatWidget } from "./ai-chat-widget";
 import { GlobalSearch } from "./global-search";
 import { ThemeToggle } from "./theme-toggle";
+import { TenantInfoProvider } from "./tenant-info";
 import { useCachedFetch } from "@/lib/use-cached-fetch";
 import type { Queues } from "@/server/queues";
 
@@ -122,6 +123,7 @@ function pageTitleFor(pathname: string): string {
 
 export function AppShell({
   tenantName,
+  taxCode = "",
   displayName,
   role,
   fontClassName,
@@ -130,6 +132,7 @@ export function AppShell({
 }: {
   taskCount?: number;
   tenantName: string;
+  taxCode?: string;
   displayName: string;
   role: Role;
   fontClassName: string;
@@ -144,6 +147,7 @@ export function AppShell({
 
   return (
     <AIChatContextProvider>
+    <TenantInfoProvider value={{ name: tenantName, taxCode }}>
     <div
       className={`${fontClassName} grid min-h-screen grid-cols-[220px_1fr] bg-[var(--bg)] text-[var(--ink)] max-[760px]:grid-cols-1`}
     >
@@ -286,6 +290,7 @@ export function AppShell({
       </div>
       <AIChatWidget />
     </div>
+    </TenantInfoProvider>
     </AIChatContextProvider>
   );
 }

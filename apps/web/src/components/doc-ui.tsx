@@ -15,7 +15,7 @@ export function statusLabelOf(doc: { doc_type: string; status: DocStatus; meta: 
 }
 
 /** Khung modal dùng chung cho form + chi tiết chứng từ. Esc / bấm nền để đóng. */
-export function Modal({ title, onClose, children }: { title: ReactNode; onClose: () => void; children: ReactNode }) {
+export function Modal({ title, onClose, headerExtra, printHeader, children }: { title: ReactNode; onClose: () => void; headerExtra?: ReactNode; printHeader?: ReactNode; children: ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -23,15 +23,23 @@ export function Modal({ title, onClose, children }: { title: ReactNode; onClose:
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-10"
+      className="print-overlay fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-10"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-3xl rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-5 shadow-lg">
+      <div className="print-area w-full max-w-3xl rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-5 shadow-lg">
+        {printHeader && (
+          <div className="mb-2 hidden border-b border-[var(--line)] pb-2 text-sm print:block" data-print-header>
+            {printHeader}
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-base font-semibold">{title}</h2>
-          <button type="button" className="rounded-[var(--r)] border border-[var(--line)] px-2.5 py-1 text-sm" onClick={onClose}>
-            Đóng
-          </button>
+          <div className="flex shrink-0 items-center gap-2 print:hidden">
+            {headerExtra}
+            <button type="button" className="rounded-[var(--r)] border border-[var(--line)] px-2.5 py-1 text-sm" onClick={onClose}>
+              Đóng
+            </button>
+          </div>
         </div>
         {children}
       </div>

@@ -52,7 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("name")
+    .select("name, tax_code")
     .eq("id", membership.tenant_id)
     .maybeSingle();
 
@@ -67,6 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AppShell
       taskCount={myTaskCount ?? 0}
       tenantName={tenant?.name ?? "ERP"}
+      taxCode={(tenant?.tax_code as string | null) ?? ""}
       displayName={membership.display_name}
       role={membership.role as Role}
       fontClassName={`${beVietnamPro.variable} ${ibmPlexMono.variable} font-[family-name:var(--font-app-sans)]`}

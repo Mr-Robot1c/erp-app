@@ -8,6 +8,7 @@ import { LinesEditor, emptyLine, linesTotal, type EditorLine, type LineItemOptio
 import { PartnerPicker, type PartnerOption } from "./partner-picker";
 import { useAIChatContext } from "./ai-chat-context";
 import { PaginationFooter, usePagination } from "./pagination";
+import { csvFileName, downloadCsv } from "@/lib/csv";
 
 type PartnerRow = PartnerOption & { kind: string };
 type Tab = { key: string; label: string };
@@ -102,6 +103,16 @@ export function DocBoard({
     .filter((d) => !term || d.doc_no.toLowerCase().includes(term) || partnerName(d.partner_id).toLowerCase().includes(term));
   const { pageRows, page, setPage, pageCount, total, pageSize } = usePagination(rows, 10);
 
+  /** UI-3 3.6: xuất CSV đúng các cột đang thấy + theo tab/pill/ô tìm đang chọn (toàn bộ dòng đã lọc, không chỉ trang hiện tại), làm phía client. */
+  function exportCsv() {
+    const label = TABS.find((t) => t.key === tab)?.label ?? "Chứng từ";
+    const money = (d: DocRow) => Number(d.doc_type === "RCPT" || d.doc_type === "PAY" ? d.meta.amount ?? 0 : d.meta.totals?.total ?? 0);
+    downloadCsv(csvFileName(label, new Date().toISOString().slice(0, 10)), [
+      ["Số", module === "buy" ? "Nhà cung cấp" : "Khách hàng", "Giá trị (đ)", "Trạng thái", "Người lập", "Ngày"],
+      ...rows.map((d) => [d.doc_no, d.partner_id ? partnerName(d.partner_id) : "", money(d), statusLabelOf(d), d.created_by_name, d.doc_date]),
+    ]);
+  }
+
   const open = docs.find((d) => d.id === openId) ?? null;
   useEffect(() => {
     if (module === "sales" && open?.doc_type === "SO") {
@@ -167,6 +178,9 @@ export function DocBoard({
             {statusSet.map((x) => STATUS_LABEL[x]).join(" + ")} ({rows.length})
           </span>
         )}
+        <button type="button" id="btn-export-csv" className={`${btnGhost} ml-auto`} onClick={exportCsv}>
+          Xuất CSV
+        </button>
         {(["all", ...STATUSES] as const).map((s) => (
           <button
             key={s}
@@ -285,6 +299,7 @@ export function DocBoard({
           onChanged={() => router.refresh()}
           openByNo={(no) => setOpenId(docs.find((x) => x.doc_no === no)?.id ?? openId)}
           canOpenNo={(no) => docs.some((x) => x.doc_no === no)}
+          lookupDoc={(no) => docs.find((x) => x.doc_no === no)}
           extraInfo={extraInfo}
           actions={(d, reload, ctx) => (
             <DocActions

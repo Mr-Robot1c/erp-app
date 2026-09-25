@@ -85,3 +85,18 @@ body {
   --bads: #3a2023;
   --lane: #212536;
 }
+
+/* In chứng từ (UI-3 3.4): nút "In" đặt html[data-printing] rồi window.print(). Chỉ giữ modal chi tiết (.print-area) + đầu trang
+   (tên công ty + MST); ẩn sidebar/header/nút. Chỉ ảnh hưởng khi đang in từ nút — Ctrl+P thường không bị đổi. */
+@media print {
+  html[data-printing] {
+    --bg: #fff; --sf: #fff; --ink: #111; --ink2: #555; --line: #ccc; --lane: #f2f2f2; --acc: #1a4fa0; --accs: #eef3fb;
+  }
+  html[data-printing] body { background: #fff; }
+  html[data-printing] body *:not(:has(.print-area)):not(.print-area):not(.print-area *) { display: none !important; }
+  html[data-printing] body *:has(.print-area) {
+    display: block !important; position: static !important; padding: 0 !important; margin: 0 !important;
+    border: 0 !important; min-height: 0 !important; background: none !important; overflow: visible !important;
+  }
+  html[data-printing] .print-area { max-width: none !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+}

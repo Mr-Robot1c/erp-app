@@ -4,6 +4,8 @@ import { DOC_LABEL, STATUS_LABEL, formatMoney, type DocStatus, type DocType, typ
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { DOC_COLUMNS } from "@/lib/doc-columns";
 import { Modal, StatusPill, statusLabelOf } from "./doc-ui";
+import { buildChain } from "@/lib/doc-chain";
+import { useTenantInfo } from "./tenant-info";
 
 export type DocRow = {
   id: string;
@@ -61,6 +63,7 @@ export function DocDetail({
   extraInfo,
   openByNo,
   canOpenNo,
+  lookupDoc,
 }: {
   doc: DocRow;
   partnerName: (id: string | null) => string;
@@ -71,11 +74,14 @@ export function DocDetail({
   extraInfo?: (doc: DocRow) => [string, ReactNode][];
   openByNo?: (docNo: string) => void;
   canOpenNo?: (docNo: string) => boolean;
+  /** Tra chứng từ đã tải theo số — để vẽ chuỗi chứng từ (UI-3 3.5) từ refs sẵn có, không thêm API. */
+  lookupDoc?: (docNo: string) => DocRow | undefined;
 }) {
   const [doc, setDoc] = useState(initial);
   const [lines, setLines] = useState<LineRow[]>([]);
   const [hist, setHist] = useState<Hist[]>([]);
   const [held, setHeld] = useState<Record<number, number>>({});
+  const tenant = useTenantInfo();
 
   const fetchAll = useCallback(async () => {
     const sb = supabaseBrowser();
@@ -125,19 +131,12 @@ export function DocDetail({
       ? ([
           [
             "Tham chiếu",
-            <span key="refs" className="flex flex-wrap gap-2">
-              {doc.refs.map((no) =>
-                canOpenNo?.(no) ? (
-                  <button key={no} type="button" className="font-mono text-[var(--acc)] underline" onClick={() => openByNo?.(no)}>
-                    {no}
-                  </button>
-                ) : (
-                  <span key={no} className="font-mono">
-                    {no}
-                  </span>
-                ),
-              )}
-            </span>,
+            <DocChain
+              key="chain"
+              nodes={buildChain(doc, (no) => lookupDoc?.(no))}
+              canOpen={(no) => Boolean(canOpenNo?.(no))}
+              onOpen={(no) => openByNo?.(no)}
+            />,
           ],
         ] as [string, ReactNode][])
       : []),
@@ -147,6 +146,17 @@ export function DocDetail({
   return (
     <Modal
       onClose={onClose}
+      printHeader={
+        <>
+          <b>{tenant.name}</b>
+          {tenant.taxCode && <span> · MST: {tenant.taxCode}</span>}
+        </>
+      }
+      headerExtra={
+        <button type="button" id="btn-print-doc" className="rounded-[var(--r)] border border-[var(--line)] px-2.5 py-1 text-sm" onClick={printDoc}>
+          In
+        </button>
+      }
       title={
         <span className="flex items-center gap-2">
           {DOC_LABEL[doc.doc_type].name} <span className="font-mono text-[var(--acc)]">{doc.doc_no}</span>
@@ -194,10 +204,10 @@ export function DocDetail({
         </table>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-start gap-2">{actions(doc, () => void reload(), { lines, held })}</div>
+      <div className="mt-3 flex flex-wrap items-start gap-2 print:hidden">{actions(doc, () => void reload(), { lines, held })}</div>
 
-      <h3 className="mt-4 text-sm font-semibold">Lịch sử</h3>
-      <ul className="mt-1 text-[12.5px]">
+      <h3 className="mt-4 text-sm font-semibold print:hidden">Lịch sử</h3>
+      <ul className="mt-1 text-[12.5px] print:hidden">
         {hist.map((h) => (
           <li key={h.id} className="border-t border-[var(--line)] py-1">
             <span className="font-mono text-[var(--ink2)]">{new Date(h.at).toLocaleString("vi-VN")}</span> · {h.actor} →{" "}
@@ -207,5 +217,55 @@ export function DocDetail({
         ))}
       </ul>
     </Modal>
+  );
+}
+
+/** In chứng từ (UI-3 3.4): đặt cờ data-printing để print stylesheet (globals.css) chỉ giữ modal, rồi window.print(); gỡ cờ sau khi đóng hộp thoại in. */
+function printDoc() {
+  const root = document.documentElement;
+  root.dataset.printing = "1";
+  window.addEventListener("afterprint", () => delete root.dataset.printing, { once: true });
+  window.print();
+}
+
+/** Chuỗi chứng từ hàng ngang (UI-3 3.5): loại + số mono + pill mỗi mắt, mắt đang xem tô đậm, mắt bấm được nếu đã tải. */
+function DocChain({
+  nodes,
+  canOpen,
+  onOpen,
+}: {
+  nodes: ReturnType<typeof buildChain>;
+  canOpen: (docNo: string) => boolean;
+  onOpen: (docNo: string) => void;
+}) {
+  return (
+    <ol className="flex flex-wrap items-center gap-1.5" data-doc-chain>
+      {nodes.map((n, i) => {
+        const inner = (
+          <>
+            <span className="text-[10.5px] text-[var(--ink2)]">{n.docType ? DOC_LABEL[n.docType].name : "Chứng từ"}</span>
+            <span className={`font-mono ${n.current ? "font-bold" : "text-[var(--acc)]"}`}>{n.docNo}</span>
+            {n.status && <StatusPill status={n.status} />}
+          </>
+        );
+        const cls = `flex flex-col items-start gap-0.5 rounded-[var(--r)] border px-2 py-1 ${n.current ? "border-[var(--acc)] bg-[var(--accs)]" : "border-[var(--line)]"}`;
+        return (
+          <li key={n.docNo} className="flex items-center gap-1.5" data-chain-node={n.docNo} data-current={n.current || undefined}>
+            {i > 0 && (
+              <span aria-hidden className="text-[var(--ink2)]">
+                →
+              </span>
+            )}
+            {!n.current && canOpen(n.docNo) ? (
+              <button type="button" className={`${cls} text-left hover:border-[var(--acc)]`} onClick={() => onOpen(n.docNo)}>
+                {inner}
+              </button>
+            ) : (
+              <span className={cls}>{inner}</span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
