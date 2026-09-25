@@ -4,6 +4,7 @@ import { createClient } from "@/server/supabase";
 import { QueueCardsClient } from "@/components/queue-cards-client";
 import { KpiCardsClient } from "@/components/kpi-cards-client";
 import { DashboardCharts } from "@/components/dashboard-charts";
+import { DashboardActivity } from "@/components/dashboard-activity";
 
 // Tổng quan (03-chuan-giao-dien mục C): chào → thẻ việc theo bộ phận (3.6) → thẻ KPI TIỀN (lô 4.4, số từ sổ; vai xem được Kế toán mới thấy) — bấm số nào cũng
 // ra danh sách/sổ nguồn. Kỳ chọn bằng `?ym=`; mặc định tháng hiện tại.
@@ -48,6 +49,8 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       <KpiCardsClient ym={ym} showMoney={showMoney} periodLocked={period?.status === "locked"} />
 
       <DashboardCharts showMoney={showMoney} />
+
+      <DashboardActivity />
     </div>
   );
 }

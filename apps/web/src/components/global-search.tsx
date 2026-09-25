@@ -4,16 +4,11 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { DOC_LABEL, type DocStatus, type DocType } from "@erp/core";
 import { StatusPill, statusLabelOf } from "./doc-ui";
+import { docHref } from "@/lib/doc-links";
 import type { SearchHit } from "@/server/search";
 
-const SALES_TYPES = new Set(["QUOTE", "SO", "DO", "INV", "RCPT"]);
-const BUY_TYPES = new Set(["PR", "PO", "GRN", "VINV", "PAY"]);
-
-/** Đích mở chi tiết: `?open=<số>` là cơ chế sẵn có của Bán hàng/Mua hàng (tự chọn tab + mở modal chi tiết). */
 function hrefOf(h: SearchHit): string {
-  if (SALES_TYPES.has(h.docType)) return `/app/sales?open=${encodeURIComponent(h.docNo)}`;
-  if (BUY_TYPES.has(h.docType)) return `/app/buy?open=${encodeURIComponent(h.docNo)}`;
-  return "/app/stock";
+  return docHref(h.docType, h.docNo) ?? "/app/stock";
 }
 
 /** Ô tìm chứng từ toàn cục giữa header (03 mục I.3): số chứng từ hoặc tên đối tác → ≤8 kết quả → bấm mở chi tiết. */

@@ -6,6 +6,7 @@ import { ROLE_LABEL, type Role } from "@erp/core";
 import type { TaskRow } from "@/server/tasks";
 import { DocDetail, type DocRow } from "./doc-detail";
 import { StatusPill, statusLabelOf } from "./doc-ui";
+import { isStaleTask, relTime } from "@/lib/format-time";
 
 const VI_ERR: Record<string, string> = {
   state_invalid: "Chứng từ không còn ở trạng thái chờ duyệt.",
@@ -16,6 +17,16 @@ const VI_ERR: Record<string, string> = {
 
 const SALES_TYPES = new Set(["QUOTE", "SO", "DO", "INV", "RCPT"]);
 const BUY_TYPES = new Set(["PR", "PO", "GRN", "VINV", "PAY"]);
+
+/** UI-3 3.3: "chờ từ <lúc tạo>" dạng tương đối; quá 16 giờ thì pill đỏ "chờ lâu". CHỈ hiển thị, không nhắc/leo thang. */
+function WaitLabel({ createdAt }: { createdAt: string }) {
+  return (
+    <span className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-[var(--ink2)]" data-wait suppressHydrationWarning>
+      chờ từ {relTime(createdAt)}
+      {isStaleTask(createdAt) && <span className="pill cancelled" data-stale>chờ lâu</span>}
+    </span>
+  );
+}
 
 async function post(url: string, body: unknown) {
   const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -115,6 +126,7 @@ export function TasksBoard({
                     <span className="flex-1">
                       {scope === "all" && <span className="pill pending mr-2">{ROLE_LABEL[t.role] ?? t.role}</span>}
                       {t.text}
+                      <WaitLabel createdAt={t.createdAt} />
                     </span>
                     <span aria-hidden className="text-lg text-[var(--ink2)]">
                       ›
@@ -124,6 +136,7 @@ export function TasksBoard({
                   <div className="flex-1 p-3">
                     {scope === "all" && <span className="pill pending mr-2">{ROLE_LABEL[t.role] ?? t.role}</span>}
                     {t.text}
+                    <WaitLabel createdAt={t.createdAt} />
                   </div>
                 )}
                 {t.canAct && (
