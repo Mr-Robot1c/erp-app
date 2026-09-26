@@ -31,7 +31,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         <div>
           <h1 className="text-lg font-semibold">Xin chào, {membership.display_name || user.email}</h1>
           <p className="text-sm text-[var(--ink2)]">
-            {ROLE_LABEL[role] ?? role} · {tenant?.name ?? "ERP"}
+            {ROLE_LABEL[role] ?? role} · {tenant?.name ?? "Sổ Việc"}
           </p>
         </div>
         {showMoney && (

@@ -16,7 +16,7 @@ export const POST = handle(async (req) => {
   const input = bodySchema.parse(await req.json());
   const base = process.env.CHATBOT_BACKEND_URL ?? "http://127.0.0.1:8000";
   const secret = process.env.ERP_CHATBOT_SHARED_SECRET ?? process.env.JOB_TOKEN;
-  if (!secret) throw new AppError("internal", "ERP chatbot bridge is not configured");
+  if (!secret) throw new AppError("internal", "Cầu nối chatbot Sổ Việc chưa được cấu hình");
   const response = await fetch(`${base}/api/internal/chat`, { method: "POST", headers: { "content-type": "application/json", "x-erp-chat-secret": secret }, body: JSON.stringify({ ...input, staff_user_id: member.userId, tenant_id: member.tenantId, staff_role: member.role }), cache: "no-store" });
   const data = await response.json();
   if (!response.ok) throw new AppError(response.status === 403 ? "forbidden" : "internal", "AI backend unavailable");

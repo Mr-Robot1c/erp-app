@@ -18,7 +18,7 @@ function sheet(wb: ExcelJS.Workbook, name: string, columns: { header: string; ke
  * Dữ liệu lấy từ CÙNG nguồn với màn hình (v_journal, receivables) nên số khớp từng đồng. Trả buffer xlsx. */
 export async function buildReport(tenantId: string, report: ReportKind, period: string) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "ERP";
+  wb.creator = "Sổ Việc";
 
   if (report === "gl") {
     const ws = sheet(wb, `Sổ cái ${period}`, [

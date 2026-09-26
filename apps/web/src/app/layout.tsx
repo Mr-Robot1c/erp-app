@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ERP",
-  description: "Hệ thống ERP cho mọi doanh nghiệp",
+  title: "Sổ Việc",
+  description: "Dùng thật, thay sổ tay.",
 };
 
 // Đặt data-theme TRƯỚC khi vẽ để không nháy sáng→tối; mặc định sáng, chỉ bật tối khi người dùng đã chọn (erp-theme=dark).

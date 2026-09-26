@@ -118,7 +118,7 @@ function pageTitleFor(pathname: string): string {
   for (const group of NAV_GROUPS) {
     for (const item of group.items) if (pathname === item.href) return item.label;
   }
-  return "ERP";
+  return "Sổ Việc";
 }
 
 export function AppShell({
@@ -152,8 +152,15 @@ export function AppShell({
       className={`${fontClassName} grid min-h-screen grid-cols-[220px_1fr] bg-[var(--bg)] text-[var(--ink)] max-[760px]:grid-cols-1`}
     >
       <aside className="flex flex-col gap-0.5 bg-[var(--side)] p-2.5 text-[var(--side-ink)] max-[760px]:flex-row max-[760px]:flex-wrap">
-        <div className="px-2.5 pt-1.5 pb-3 text-[15px] font-bold max-[760px]:w-full">
-          ERP
+        <div className="px-2.5 pt-1.5 pb-3 max-[760px]:w-full">
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M2.5 4.5c2.8-.8 5-.3 7.5 1.4v10c-2.5-1.7-4.7-2.2-7.5-1.4z" />
+              <path d="M17.5 4.5c-2.8-.8-5-.3-7.5 1.4v10c2.5-1.7 4.7-2.2 7.5-1.4z" />
+              <path d="M5 7.2c1.2-.1 2.1.1 3 .6M12 7.8c.9-.5 1.8-.7 3-.6" />
+            </svg>
+            <span>Sổ Việc</span>
+          </div>
           <small id="tenant-title" className="mt-0.5 block text-[11px] font-normal opacity-70">
             {tenantName}
           </small>

@@ -35,8 +35,8 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto mt-24 w-full max-w-sm rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-6 shadow-sm">
-      <h1 className="text-xl font-bold">ERP — đăng nhập</h1>
-      <p className="mt-1 text-sm text-[var(--ink2)]">Tài khoản email riêng của hệ thống.</p>
+      <h1 className="text-xl font-bold">Sổ Việc</h1>
+      <p className="mt-1 text-sm text-[var(--ink2)]">Dùng thật, thay sổ tay.</p>
       <form
         className="mt-4 flex flex-col gap-3"
         onSubmit={(e) => {

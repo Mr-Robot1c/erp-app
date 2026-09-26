@@ -66,7 +66,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       taskCount={myTaskCount ?? 0}
-      tenantName={tenant?.name ?? "ERP"}
+      tenantName={tenant?.name ?? "Sổ Việc"}
       taxCode={(tenant?.tax_code as string | null) ?? ""}
       displayName={membership.display_name}
       role={membership.role as Role}
