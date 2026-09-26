@@ -1,5 +1,6 @@
 "use client";
 import { formatMoney } from "@erp/core";
+import { formatDate } from "@/lib/format";
 import { PaginationFooter, usePagination } from "./pagination";
 
 const KIND: Record<string, string> = { invoice: "Hoá đơn", deposit: "Cọc", renewal: "Gia hạn" };
@@ -36,7 +37,7 @@ export function ReceivableTable({ open, pname }: { open: OpenReceivable[]; pname
               <td className="px-3 py-2">{pname.get(r.partner_id) ?? "—"}</td>
               <td className="px-3 py-2">{KIND[r.kind] ?? r.kind}</td>
               <td className="px-3 py-2">
-                {r.due_date ?? "—"}
+                {r.due_date ? formatDate(r.due_date) : "—"}
                 {r.overdue && <span className="pill cancelled ml-2">Quá hạn</span>}
               </td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(r.amount - r.paid)}</td>
@@ -72,7 +73,7 @@ export function PayableTable({ openPay, pname }: { openPay: OpenPayable[]; pname
           {pageRows.map((p) => (
             <tr key={p.id} className="border-t border-[var(--line)]">
               <td className="px-3 py-2">{pname.get(p.partner_id) ?? "—"}</td>
-              <td className="px-3 py-2">{p.due_date ?? "—"}</td>
+              <td className="px-3 py-2">{p.due_date ? formatDate(p.due_date) : "—"}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(p.amount - p.paid)}</td>
             </tr>
           ))}

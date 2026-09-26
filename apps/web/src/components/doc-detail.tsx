@@ -6,6 +6,7 @@ import { DOC_COLUMNS } from "@/lib/doc-columns";
 import { Modal, StatusPill, statusLabelOf } from "./doc-ui";
 import { buildChain } from "@/lib/doc-chain";
 import { useTenantInfo } from "./tenant-info";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 export type DocRow = {
   id: string;
@@ -123,7 +124,7 @@ export function DocDetail({
   const isPo = doc.doc_type === "PO";
   const total = lines.reduce((s, l) => s + Math.round(Number(l.qty) * Number(l.price)), 0);
   const info: [string, ReactNode][] = [
-    ["Ngày", doc.doc_date],
+    ["Ngày", <PrintSafeDate key="doc-date" value={doc.doc_date} />],
     ["Đối tác", partnerName(doc.partner_id)],
     ["Người lập", doc.created_by_name || "—"],
     ...(extraInfo?.(doc) ?? []),
@@ -210,13 +211,23 @@ export function DocDetail({
       <ul className="mt-1 text-[12.5px] print:hidden">
         {hist.map((h) => (
           <li key={h.id} className="border-t border-[var(--line)] py-1">
-            <span className="font-mono text-[var(--ink2)]">{new Date(h.at).toLocaleString("vi-VN")}</span> · {h.actor} →{" "}
+            <span className="font-mono text-[var(--ink2)]">{formatDateTime(h.at)}</span> · {h.actor} →{" "}
             {STATUS_LABEL[h.to_status as DocStatus] ?? h.to_status}
             {h.note && <span className="text-[var(--ink2)]"> — {h.note}</span>}
           </li>
         ))}
       </ul>
     </Modal>
+  );
+}
+
+/** UI dùng dd/MM/yyyy; bản in giữ chuỗi ISO gốc theo hợp đồng UI-3.4. */
+export function PrintSafeDate({ value }: { value: string }) {
+  return (
+    <>
+      <span className="print:hidden">{formatDate(value)}</span>
+      <span className="hidden print:inline">{value}</span>
+    </>
   );
 }
 

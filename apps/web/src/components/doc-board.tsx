@@ -2,13 +2,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { STATUSES, STATUS_LABEL, can, formatMoney, type DocStatus, type Role } from "@erp/core";
-import { DocDetail, type DocRow, type LineRow } from "./doc-detail";
+import { DocDetail, PrintSafeDate, type DocRow, type LineRow } from "./doc-detail";
 import { Modal, StatusPill, btnGhost, btnPrimary, callApi, inputCls, newKey, statusLabelOf } from "./doc-ui";
 import { LinesEditor, emptyLine, linesTotal, type EditorLine, type LineItemOption } from "./lines-editor";
 import { PartnerPicker, type PartnerOption } from "./partner-picker";
 import { useAIChatContext } from "./ai-chat-context";
 import { PaginationFooter, usePagination } from "./pagination";
 import { csvFileName, downloadCsv } from "@/lib/csv";
+import { formatDate } from "@/lib/format";
 
 type PartnerRow = PartnerOption & { kind: string };
 type Tab = { key: string; label: string };
@@ -231,7 +232,7 @@ export function DocBoard({
                   <StatusPill status={d.status} label={statusLabelOf(d)} />
                 </td>
                 <td className="px-3 py-2">{d.created_by_name}</td>
-                <td className="px-3 py-2">{d.doc_date}</td>
+                <td className="px-3 py-2">{formatDate(d.doc_date)}</td>
               </tr>
             ))}
           </tbody>
@@ -324,7 +325,7 @@ export function DocBoard({
 
 function extraInfo(d: DocRow): [string, ReactNode][] {
   const out: [string, ReactNode][] = [];
-  if (d.meta.validTo) out.push(["Hiệu lực đến", d.meta.validTo]);
+  if (d.meta.validTo) out.push(["Hiệu lực đến", <PrintSafeDate key="valid-to" value={d.meta.validTo} />]);
   if (d.doc_type === "SO") {
     out.push(["Điều khoản", d.meta.terms === "credit" ? "Công nợ" : "Trả khi giao"]);
     if (Number(d.meta.depositPct) > 0) out.push(["Cọc", `${d.meta.depositPct}%`]);
@@ -332,8 +333,8 @@ function extraInfo(d: DocRow): [string, ReactNode][] {
     if (d.meta.note) out.push(["Ghi chú", String(d.meta.note)]);
   }
   if (d.doc_type === "INV") {
-    if (d.meta.deliverDate) out.push(["Ngày giao (ghi doanh thu)", d.meta.deliverDate]);
-    if (d.meta.due) out.push(["Hạn thanh toán", d.meta.due]);
+    if (d.meta.deliverDate) out.push(["Ngày giao (ghi doanh thu)", <PrintSafeDate key="deliver-date" value={d.meta.deliverDate} />]);
+    if (d.meta.due) out.push(["Hạn thanh toán", <PrintSafeDate key="invoice-due" value={d.meta.due} />]);
     if (d.meta.total) out.push(["Tổng gồm thuế", formatMoney(Number(d.meta.total))]);
     if (Number(d.meta.advApplied) > 0) out.push(["Đã cấn trừ (cọc/ứng trước)", formatMoney(Number(d.meta.advApplied))]);
   }
@@ -341,7 +342,7 @@ function extraInfo(d: DocRow): [string, ReactNode][] {
     if (d.meta.forSONo) out.push(["Cho đơn bán", String(d.meta.forSONo)]);
   }
   if (d.doc_type === "PO") {
-    if (d.meta.eta) out.push(["Hạn giao dự kiến", String(d.meta.eta)]);
+    if (d.meta.eta) out.push(["Hạn giao dự kiến", <PrintSafeDate key="po-eta" value={String(d.meta.eta)} />]);
     if (d.meta.sentToSupplier) out.push(["Trạng thái gửi", "Đã gửi nhà cung cấp"]);
   }
   if (d.doc_type === "GRN") {
@@ -353,7 +354,7 @@ function extraInfo(d: DocRow): [string, ReactNode][] {
     if (d.meta.poNo) out.push(["Theo đơn mua", String(d.meta.poNo)]);
     if (d.meta.invoiceNo) out.push(["Số hoá đơn NCC", String(d.meta.invoiceNo)]);
     if (d.meta.total) out.push(["Phải trả (gồm thuế)", formatMoney(Number(d.meta.total))]);
-    if (d.meta.due) out.push(["Hạn thanh toán", String(d.meta.due)]);
+    if (d.meta.due) out.push(["Hạn thanh toán", <PrintSafeDate key="vinv-due" value={String(d.meta.due)} />]);
     if (d.meta.cogsAdjustment) out.push(["Chênh giá vốn", formatMoney(Number(d.meta.cogsAdjustment))]);
     if (d.meta.matchNote) out.push(["Lệch khi đối chiếu", String(d.meta.matchNote)]);
   }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatMoney } from "@erp/core";
 import type { createClient } from "@/server/supabase";
 import { ExportButton } from "./export-button";
+import { formatDate } from "@/lib/format";
 
 type Sb = Awaited<ReturnType<typeof createClient>>;
 type Params = { ym?: string; account?: string; partner?: string };
@@ -87,7 +88,7 @@ export async function LedgerView({ sb, params }: { sb: Sb; params: Params }) {
             )}
             {(rows ?? []).map((r) => (
               <tr key={r.line_id as number} className="border-t border-[var(--line)]" data-doc-no={(r.doc_no as string | null) ?? ""}>
-                <td className="px-3 py-2">{String(r.entry_date)}</td>
+                <td className="px-3 py-2">{formatDate(String(r.entry_date))}</td>
                 <td className="px-3 py-2">
                   <DocLink type={r.doc_type as string | null} no={r.doc_no as string | null} />
                 </td>
@@ -254,7 +255,7 @@ export async function PartnerLedgerView({ sb, params }: { sb: Sb; params: Params
               )}
               {lines.map((r) => (
                 <tr key={r.line_id as number} className="border-t border-[var(--line)]" data-doc-no={(r.doc_no as string | null) ?? ""}>
-                  <td className="px-3 py-2">{String(r.entry_date)}</td>
+                  <td className="px-3 py-2">{formatDate(String(r.entry_date))}</td>
                   <td className="px-3 py-2">
                     <DocLink type={r.doc_type as string | null} no={r.doc_no as string | null} />
                   </td>

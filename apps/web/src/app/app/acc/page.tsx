@@ -7,6 +7,7 @@ import { ExportButton } from "@/components/export-button";
 import { OpeningBalanceForm } from "@/components/opening-balance-form";
 import { JournalAdjustForm, MatchReceiptActions, PeriodManager } from "@/components/period-tools";
 import { PayableTable, ReceivableTable } from "@/components/debt-tables";
+import { formatDate } from "@/lib/format";
 
 /** Công nợ đơn giản (lô 2.5): phải thu còn mở, tiền ứng trước, và hàng chờ khớp tay (phiếu thu không mã / dư thành ứng trước).
  * Báo cáo công nợ đầy đủ (tuổi nợ, nhắc, chặn) ở GĐ4. */
@@ -153,7 +154,7 @@ export default async function AccPage({ searchParams }: { searchParams: Promise<
                 <tr key={u.id as string} className="border-t border-[var(--line)] first:border-t-0">
                   <td className="px-3 py-2 font-mono text-[var(--acc)]">{r?.doc_no ?? "—"}</td>
                   <td className="px-3 py-2">{pname.get((r?.partner_id as string) ?? "") ?? "—"}</td>
-                  <td className="px-3 py-2">{r?.doc_date ?? ""}</td>
+                  <td className="px-3 py-2">{r?.doc_date ? formatDate(r.doc_date) : "—"}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{formatMoney(Number(u.amount))}</td>
                   {canMatch && (
                     <td className="px-3 py-2">
