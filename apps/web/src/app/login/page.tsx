@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { DemoLoginPanel } from "@/components/demo-login-panel";
 
 const VI_ERR: Record<string, string> = {
   "Invalid login credentials": "Email hoặc mật khẩu không đúng.",
@@ -10,20 +11,20 @@ const VI_ERR: Record<string, string> = {
 };
 
 export default function LoginPage() {
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(mode: "in" | "up") {
+  async function submit(mode: "in" | "up", creds?: { email: string; password: string }) {
     setBusy(true);
     setMsg("");
     const sb = supabaseBrowser();
+    const c = creds ?? { email, password };
     const { error } =
-      mode === "in"
-        ? await sb.auth.signInWithPassword({ email, password })
-        : await sb.auth.signUp({ email, password });
+      mode === "in" ? await sb.auth.signInWithPassword(c) : await sb.auth.signUp(c);
     setBusy(false);
     if (error) {
       setMsg(VI_ERR[error.message] ?? error.message);
@@ -34,7 +35,18 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto mt-24 w-full max-w-sm rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-6 shadow-sm">
+    <div className={`mx-auto flex w-full flex-col gap-4 px-4 pb-10 ${demoMode ? "mt-10 max-w-5xl md:mt-16 md:flex-row md:items-start" : "mt-24 max-w-sm"}`}>
+      {demoMode && (
+        <DemoLoginPanel
+          busy={busy}
+          onLogin={(demoEmail, demoPassword) => {
+            setEmail(demoEmail);
+            setPassword(demoPassword);
+            void submit("in", { email: demoEmail, password: demoPassword });
+          }}
+        />
+      )}
+      <main className="order-1 w-full rounded-[var(--r)] border border-[var(--line)] bg-[var(--sf)] p-6 shadow-sm md:order-2 md:max-w-sm">
       <h1 className="text-xl font-bold">Sổ Việc</h1>
       <p className="mt-1 text-sm text-[var(--ink2)]">Dùng thật, thay sổ tay.</p>
       <form
@@ -86,6 +98,7 @@ export default function LoginPage() {
           Đăng ký tài khoản mới
         </button>
       </form>
-    </main>
+      </main>
+    </div>
   );
 }
