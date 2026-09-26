@@ -51,3 +51,9 @@ export async function requireMember(roles?: Role[], req?: Request): Promise<Memb
     displayName: row.display_name,
   };
 }
+
+/** Cổng vai tách riêng cho route cần xác thực membership trước rồi mới chặn quyền. */
+export function requireRole(roles: Role[], member: Member): Member {
+  if (!roles.includes(member.role)) throw new AppError("forbidden");
+  return member;
+}

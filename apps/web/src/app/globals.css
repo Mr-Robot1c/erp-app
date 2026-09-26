@@ -100,3 +100,5 @@ body {
   }
   html[data-printing] .print-area { max-width: none !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
 }
+
+.exec-grid { grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
